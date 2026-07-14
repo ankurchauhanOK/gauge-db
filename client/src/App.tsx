@@ -4,6 +4,9 @@ import Login from './pages/Login';
 import AppLayout from './components/layout/AppLayout';
 import OperatorDashboard from './pages/OperatorDashboard';
 import StartProcess from './pages/StartProcess';
+import InspectionScreen from './pages/InspectionScreen';
+import InspectionComplete from './pages/InspectionComplete';
+import OperatorSearch from './pages/OperatorSearch';
 import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -64,6 +67,9 @@ export default function App() {
                     <Routes>
                       <Route path="dashboard" element={<OperatorDashboard />} />
                       <Route path="start" element={<StartProcess />} />
+                      <Route path="inspection/:serial" element={<InspectionScreen />} />
+                      <Route path="complete/:serial" element={<InspectionComplete />} />
+                      <Route path="search" element={<OperatorSearch />} />
                       <Route path="*" element={<Navigate to="dashboard" replace />} />
                     </Routes>
                   </AppLayout>

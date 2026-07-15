@@ -13,6 +13,16 @@ import PlanBuilder from './pages/PlanBuilder';
 import MachineList from './pages/MachineList';
 import GaugeList from './pages/GaugeList';
 import UserList from './pages/UserList';
+import ProductionRecords from './pages/ProductionRecords';
+import Traceability from './pages/Traceability';
+import Reports from './pages/Reports';
+import AuditLog from './pages/AuditLog';
+import Settings from './pages/Settings';
+import SupervisorDashboard from './pages/SupervisorDashboard';
+import LiveMachines from './pages/LiveMachines';
+import RejectedList from './pages/RejectedList';
+import SupervisorSearch from './pages/SupervisorSearch';
+import SupervisorReports from './pages/SupervisorReports';
 import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -97,6 +107,11 @@ export default function App() {
                       <Route path="machines" element={<MachineList />} />
                       <Route path="gauges" element={<GaugeList />} />
                       <Route path="users" element={<UserList />} />
+                      <Route path="production" element={<ProductionRecords />} />
+                      <Route path="traceability" element={<Traceability />} />
+                      <Route path="reports" element={<Reports />} />
+                      <Route path="audit" element={<AuditLog />} />
+                      <Route path="settings" element={<Settings />} />
                       <Route path="*" element={<Navigate to="dashboard" replace />} />
                     </Routes>
                   </AppLayout>
@@ -112,7 +127,11 @@ export default function App() {
                 <RoleRoute roles={['supervisor']}>
                   <AppLayout>
                     <Routes>
-                      <Route path="dashboard" element={<div className="p-6"><h1 className="text-xl font-bold">Supervisor Dashboard</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
+                      <Route path="dashboard" element={<SupervisorDashboard />} />
+                      <Route path="machines" element={<LiveMachines />} />
+                      <Route path="rejected" element={<RejectedList />} />
+                      <Route path="search" element={<SupervisorSearch />} />
+                      <Route path="reports" element={<SupervisorReports />} />
                       <Route path="*" element={<Navigate to="dashboard" replace />} />
                     </Routes>
                   </AppLayout>

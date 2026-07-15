@@ -384,3 +384,166 @@ export async function deleteUser(id: number) {
   const idx = mockUsers.findIndex(u => u.id === id);
   if (idx > -1) mockUsers.splice(idx, 1);
 }
+
+// ============ Production Records ============
+const allProductionRecords = [
+  { id: 1, serial: 'SB2507140001', part: 'BUSH-001', component: 'Precision Bushing', machine: 'INS-01', operator: 'Rajesh Kumar', status: 'accepted', qr_status: 'marked', started: '2026-07-14 06:02', completed: '2026-07-14 06:08' },
+  { id: 2, serial: 'SB2507140002', part: 'PISTON-001', component: 'Hydraulic Piston', machine: 'INS-01', operator: 'Rajesh Kumar', status: 'rejected', qr_status: 'n/a', started: '2026-07-14 06:15', completed: '2026-07-14 06:17', reason: 'Outer Diameter Out of Tolerance' },
+  { id: 3, serial: 'SB2507140003', part: 'BUSH-001', component: 'Precision Bushing', machine: 'INS-02', operator: 'Suresh Patel', status: 'accepted', qr_status: 'marked', started: '2026-07-14 07:30', completed: '2026-07-14 07:36' },
+  { id: 4, serial: 'SB2507140004', part: 'BEARING-001', component: 'Ball Bearing', machine: 'INS-01', operator: 'Suresh Patel', status: 'accepted', qr_status: 'pending', started: '2026-07-14 08:00', completed: '2026-07-14 08:05' },
+  { id: 5, serial: 'SB2507140005', part: 'SHAFT-001', component: 'Drive Shaft', machine: 'INS-02', operator: 'Rajesh Kumar', status: 'accepted', qr_status: 'marked', started: '2026-07-14 08:45', completed: '2026-07-14 08:50' },
+  { id: 6, serial: 'SB2507140006', part: 'BUSH-001', component: 'Precision Bushing', machine: 'INS-01', operator: 'Suresh Patel', status: 'rejected', qr_status: 'n/a', started: '2026-07-14 09:10', completed: '2026-07-14 09:12', reason: 'Inner Diameter Out of Tolerance' },
+  { id: 7, serial: 'SB2507140007', part: 'SLEEVE-001', component: 'Steel Sleeve', machine: 'INS-02', operator: 'Rajesh Kumar', status: 'in_progress', qr_status: 'n/a', started: '2026-07-14 09:45', completed: null },
+  { id: 8, serial: 'SB2507140008', part: 'PISTON-001', component: 'Hydraulic Piston', machine: 'INS-01', operator: 'Suresh Patel', status: 'accepted', qr_status: 'marked', started: '2026-07-14 10:00', completed: '2026-07-14 10:07' },
+  { id: 9, serial: 'SB2507140009', part: 'BEARING-001', component: 'Ball Bearing', machine: 'INS-02', operator: 'Rajesh Kumar', status: 'accepted', qr_status: 'pending', started: '2026-07-14 10:30', completed: '2026-07-14 10:34' },
+  { id: 10, serial: 'SB2507140010', part: 'SHAFT-001', component: 'Drive Shaft', machine: 'INS-01', operator: 'Suresh Patel', status: 'rejected', qr_status: 'n/a', started: '2026-07-14 11:00', completed: '2026-07-14 11:03', reason: 'Surface Roughness Exceeded' },
+];
+
+export async function getProductionRecords(filters?: { status?: string; machine?: string; search?: string }) {
+  await delay(400);
+  let result = [...allProductionRecords];
+  if (filters?.status && filters.status !== 'all') result = result.filter(r => r.status === filters.status);
+  if (filters?.machine && filters.machine !== 'all') result = result.filter(r => r.machine === filters.machine);
+  if (filters?.search) {
+    const q = filters.search.toLowerCase();
+    result = result.filter(r => r.serial.toLowerCase().includes(q) || r.part.toLowerCase().includes(q));
+  }
+  return result;
+}
+
+// ============ Traceability ============
+const traceabilityData: Record<string, { event: string; timestamp: string; details: string }[]> = {
+  'SB2507140001': [
+    { event: 'Production Started', timestamp: '2026-07-14 06:02:15', details: 'Component: BUSH-001, Machine: INS-01, Operator: Rajesh Kumar' },
+    { event: 'Rough Turning', timestamp: '2026-07-14 06:03:20', details: 'Outer Diameter: 20.001mm (PASS)' },
+    { event: 'Finish Grinding', timestamp: '2026-07-14 06:05:40', details: 'Inner Diameter: 10.002mm (PASS)' },
+    { event: 'Final Inspection', timestamp: '2026-07-14 06:07:55', details: 'Length: 30.003mm (PASS)' },
+    { event: 'Component Accepted', timestamp: '2026-07-14 06:08:42', details: 'All inspections passed' },
+    { event: 'QR Code Generated', timestamp: '2026-07-14 06:09:00', details: 'QR data: AutoParts Ltd / BUSH-001 / SB2507140001' },
+    { event: 'QR Marked', timestamp: '2026-07-14 06:09:30', details: 'QR marking completed successfully' },
+    { event: 'Completed', timestamp: '2026-07-14 06:09:35', details: 'Component ready for dispatch' },
+  ],
+  'SB2507140002': [
+    { event: 'Production Started', timestamp: '2026-07-14 06:15:30', details: 'Component: PISTON-001, Machine: INS-01, Operator: Rajesh Kumar' },
+    { event: 'Outer Diameter Turning', timestamp: '2026-07-14 06:16:20', details: 'Outer Diameter: 50.015mm (FAIL — exceeds max 50.010)' },
+    { event: 'Component Rejected', timestamp: '2026-07-14 06:17:05', details: 'Reason: Outer Diameter Out of Tolerance' },
+  ],
+};
+
+export async function getTraceability(serial: string) {
+  await delay(400);
+  return traceabilityData[serial] || null;
+}
+
+// ============ Audit Logs ============
+const auditLogs = [
+  { id: 1, user: 'admin', action: 'Login', entity: 'User', details: 'Admin logged in', date: '2026-07-14 06:00:00' },
+  { id: 2, user: 'admin', action: 'Update', entity: 'Component', details: 'Changed BUSH-001 revision from 1 to 2', date: '2026-07-14 06:05:00' },
+  { id: 3, user: 'admin', action: 'Create', entity: 'User', details: 'Created user operator3', date: '2026-07-14 07:00:00' },
+  { id: 4, user: 'operator1', action: 'Login', entity: 'User', details: 'Operator logged in', date: '2026-07-14 07:15:00' },
+  { id: 5, user: 'operator1', action: 'Start Process', entity: 'Production', details: 'Started SB2507140003', date: '2026-07-14 07:30:00' },
+  { id: 6, user: 'admin', action: 'Update', entity: 'Tolerance', details: 'Modified Outer Diameter tolerance for BUSH-001', date: '2026-07-14 08:00:00' },
+  { id: 7, user: 'supervisor', action: 'Login', entity: 'User', details: 'Supervisor logged in', date: '2026-07-14 08:30:00' },
+  { id: 8, user: 'admin', action: 'Create', entity: 'Component', details: 'Created new component SHAFT-002', date: '2026-07-14 09:00:00' },
+  { id: 9, user: 'admin', action: 'Delete', entity: 'User', details: 'Deleted user engineer1', date: '2026-07-14 09:30:00' },
+  { id: 10, user: 'operator2', action: 'Login', entity: 'User', details: 'Operator logged in', date: '2026-07-14 10:00:00' },
+];
+
+export async function getAuditLogs() {
+  await delay(300);
+  return [...auditLogs];
+}
+
+// ============ Reports ============
+export async function getReportsData(type: string) {
+  await delay(400);
+  const reports: Record<string, unknown> = {
+    daily: { produced: 47, accepted: 42, rejected: 5, quality: '89.4%', target: 80, efficiency: '58.8%' },
+    weekly: { produced: 312, accepted: 286, rejected: 26, quality: '91.7%', target: 400, efficiency: '78.0%' },
+    monthly: { produced: 1245, accepted: 1148, rejected: 97, quality: '92.2%', target: 1600, efficiency: '77.8%' },
+    machine: [
+      { name: 'INS-01', produced: 22, accepted: 19, rejected: 3, quality: '86.4%' },
+      { name: 'INS-02', produced: 25, accepted: 23, rejected: 2, quality: '92.0%' },
+    ],
+    operator: [
+      { name: 'Rajesh Kumar', produced: 25, accepted: 22, rejected: 3, quality: '88.0%' },
+      { name: 'Suresh Patel', produced: 22, accepted: 20, rejected: 2, quality: '90.9%' },
+    ],
+  };
+  return reports[type] || null;
+}
+
+// ============ Settings ============
+let settings = {
+  company: { name: 'AutoParts Ltd', address: 'Plot 42, Industrial Area', city: 'Pune', country: 'India', phone: '+91-20-12345678' },
+  backup: { auto_backup: true, backup_time: '02:00', retention_days: 30 },
+  serial_format: { prefix: 'SB', include_date: true, digits: 4 },
+  qr: { format: 'QR_CODE', content: 'COMPANY\\nPART_CODE\\nSERIAL_NO', size: '20x20mm' },
+  shift: { morning: '06:00-14:00', afternoon: '14:00-22:00', night: '22:00-06:00' },
+};
+
+export async function getSettings() {
+  await delay(300);
+  return { ...settings };
+}
+
+export async function saveSettings(data: Partial<typeof settings>) {
+  await delay(400);
+  Object.assign(settings, data);
+  return { ...settings };
+}
+
+// ============ Supervisor Dashboard ============
+export async function getSupervisorDashboard() {
+  await delay(400);
+  return {
+    todayProduction: 47,
+    target: 80,
+    accepted: 42,
+    rejected: 5,
+    qualityPercentage: 89.4,
+    efficiency: 58.8,
+    machineStatuses: [
+      { id: 1, name: 'Inspection Station 1', type: 'inspection', status: 'running', operator: 'Rajesh Kumar', currentSerial: 'SB2507140010' },
+      { id: 2, name: 'Inspection Station 2', type: 'inspection', status: 'idle', operator: '-', currentSerial: null },
+      { id: 3, name: 'QR Marking Station', type: 'qr_marking', status: 'running', operator: 'System', currentSerial: 'SB2507140008' },
+      { id: 4, name: 'CNC Lathe 01', type: 'production', status: 'running', operator: '-', currentSerial: null },
+    ],
+    machineWise: [
+      { machine: 'INS-01', produced: 22, accepted: 19, rejected: 3 },
+      { machine: 'INS-02', produced: 25, accepted: 23, rejected: 2 },
+    ],
+    operatorWise: [
+      { operator: 'Rajesh Kumar', produced: 25, accepted: 22, rejected: 3 },
+      { operator: 'Suresh Patel', produced: 22, accepted: 20, rejected: 2 },
+    ],
+    hourlyTrend: [3, 5, 7, 6, 8, 4, 5, 6],
+    rejectionReasons: [
+      { reason: 'Outer Diameter Out of Tolerance', count: 2 },
+      { reason: 'Inner Diameter Out of Tolerance', count: 1 },
+      { reason: 'Surface Roughness Exceeded', count: 1 },
+      { reason: 'Length Out of Tolerance', count: 1 },
+    ],
+  };
+}
+
+// ============ Rejected Components ============
+export async function getRejectedComponents() {
+  await delay(300);
+  return allProductionRecords.filter(r => r.status === 'rejected');
+}
+
+// ============ Supervisor Search ============
+export async function supervisorSearch(query: string) {
+  await delay(400);
+  const q = query.toLowerCase();
+  return allProductionRecords.filter(r =>
+    r.serial.toLowerCase().includes(q) || r.part.toLowerCase().includes(q)
+  ).map(r => ({
+    ...r,
+    measurements: [
+      { dim: 'Outer Diameter', nominal: '20.000', measured: '20.001', min: '19.995', max: '20.005', result: 'PASS' as const },
+      { dim: 'Inner Diameter', nominal: '10.000', measured: '10.002', min: '9.995', max: '10.005', result: 'PASS' as const },
+    ],
+  }));
+}

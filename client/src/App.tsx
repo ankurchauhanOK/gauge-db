@@ -7,6 +7,12 @@ import StartProcess from './pages/StartProcess';
 import InspectionScreen from './pages/InspectionScreen';
 import InspectionComplete from './pages/InspectionComplete';
 import OperatorSearch from './pages/OperatorSearch';
+import AdminDashboard from './pages/AdminDashboard';
+import ComponentList from './pages/ComponentList';
+import PlanBuilder from './pages/PlanBuilder';
+import MachineList from './pages/MachineList';
+import GaugeList from './pages/GaugeList';
+import UserList from './pages/UserList';
 import type { ReactNode } from 'react';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
@@ -85,7 +91,12 @@ export default function App() {
                 <RoleRoute roles={['admin', 'quality']}>
                   <AppLayout>
                     <Routes>
-                      <Route path="dashboard" element={<div className="p-6"><h1 className="text-xl font-bold">Admin Dashboard</h1><p className="text-surface-400 mt-2">Coming soon</p></div>} />
+                      <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="components" element={<ComponentList />} />
+                      <Route path="plans" element={<PlanBuilder />} />
+                      <Route path="machines" element={<MachineList />} />
+                      <Route path="gauges" element={<GaugeList />} />
+                      <Route path="users" element={<UserList />} />
                       <Route path="*" element={<Navigate to="dashboard" replace />} />
                     </Routes>
                   </AppLayout>

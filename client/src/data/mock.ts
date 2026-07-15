@@ -6,9 +6,20 @@ import type {
   Machine,
   ProductionRecord,
   InspectionResult,
+  User,
+  Gauge,
 } from '../../../shared/types';
 
 const now = new Date();
+
+export const mockUsers: (User & { password?: string })[] = [
+  { id: 1, username: 'admin', name: 'System Administrator', role: 'admin', is_active: true, password: 'admin123' },
+  { id: 2, username: 'operator1', name: 'Rajesh Kumar', role: 'operator', is_active: true, password: 'operator123' },
+  { id: 3, username: 'operator2', name: 'Suresh Patel', role: 'operator', is_active: true, password: 'operator123' },
+  { id: 4, username: 'supervisor', name: 'Amit Singh', role: 'supervisor', is_active: true, password: 'supervisor123' },
+  { id: 5, username: 'quality1', name: 'Priya Sharma', role: 'quality', is_active: true, password: 'supervisor123' },
+  { id: 6, username: 'engineer1', name: 'Vikram Reddy', role: 'admin', is_active: false },
+];
 
 export const mockComponents: Component[] = [
   { id: 1, part_code: 'BUSH-001', description: 'Precision Bushing 20mm ID', customer: 'AutoParts Ltd', revision: 2, status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
@@ -16,6 +27,13 @@ export const mockComponents: Component[] = [
   { id: 3, part_code: 'BEARING-001', description: 'Ball Bearing 30mm ID', customer: 'DriveTrain Co', revision: 3, status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
   { id: 4, part_code: 'SHAFT-001', description: 'Drive Shaft 25mm', customer: 'AutoParts Ltd', revision: 1, status: 'active', created_at: now.toISOString(), updated_at: now.toISOString() },
   { id: 5, part_code: 'SLEEVE-001', description: 'Steel Sleeve 40mm', customer: 'MechWorks Inc', revision: 2, status: 'inactive', created_at: now.toISOString(), updated_at: now.toISOString() },
+];
+
+export const mockGauges: Gauge[] = [
+  { id: 1, gauge_name: 'Air Gauge 01', interface_type: 'serial', connection_config: { port: 'COM3', baudRate: 9600 }, calibration_date: '2026-01-15', calibration_due: '2026-07-15', is_active: true },
+  { id: 2, gauge_name: 'Air Gauge 02', interface_type: 'serial', connection_config: { port: 'COM4', baudRate: 9600 }, calibration_date: '2026-02-20', calibration_due: '2026-08-20', is_active: true },
+  { id: 3, gauge_name: 'Digital Micrometer', interface_type: 'web_serial', connection_config: { baudRate: 115200 }, calibration_date: '2026-03-10', calibration_due: '2026-09-10', is_active: true },
+  { id: 4, gauge_name: 'Laser Scanner', interface_type: 'tcp', connection_config: { host: '192.168.1.50', portNumber: 5000 }, calibration_date: '2025-12-01', calibration_due: '2026-06-01', is_active: false },
 ];
 
 export const mockMachines: Machine[] = [
@@ -130,6 +148,28 @@ export const operatorDashboardMock = {
   target: 80,
   qualityPercentage: 89.4,
   machineStatus: mockMachines.map(m => ({ id: m.id, name: m.name, status: m.status })),
+};
+
+export const adminDashboardMock = {
+  todayProduction: 47,
+  accepted: 42,
+  rejected: 5,
+  target: 80,
+  qualityPercentage: 89.4,
+  activeMachines: 3,
+  totalMachines: 4,
+  alerts: [
+    { id: 1, type: 'warning', message: 'Gauge 2 calibration due in 5 days', time: '2h ago' },
+    { id: 2, type: 'info', message: 'Machine INS-02 scheduled maintenance', time: '5h ago' },
+    { id: 3, type: 'error', message: 'Component SLEEVE-001 is obsolete', time: '1d ago' },
+  ],
+  recentProduction: [
+    { serial: 'SB2507140010', part: 'BUSH-001', status: 'accepted', time: '10 min ago', operator: 'Rajesh Kumar' },
+    { serial: 'SB2507140009', part: 'PISTON-001', status: 'rejected', time: '25 min ago', operator: 'Suresh Patel', reason: 'Outer Diameter Out of Tolerance' },
+    { serial: 'SB2507140008', part: 'BUSH-001', status: 'accepted', time: '40 min ago', operator: 'Rajesh Kumar' },
+    { serial: 'SB2507140007', part: 'BEARING-001', status: 'accepted', time: '1h ago', operator: 'Suresh Patel' },
+    { serial: 'SB2507140006', part: 'SHAFT-001', status: 'qr_marked', time: '1.5h ago', operator: 'Rajesh Kumar' },
+  ],
 };
 
 export const searchHistoryMock: ProductionRecord[] = [

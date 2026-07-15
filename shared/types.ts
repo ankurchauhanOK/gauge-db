@@ -45,6 +45,15 @@ export interface InspectionPlan {
   is_active: boolean;
   created_at: string;
   operations: Operation[];
+  flow_steps: FlowStep[];
+}
+
+export interface FlowStep {
+  id: number;
+  inspection_plan_id: number;
+  machine_id: number;
+  step_order: number;
+  operations: Operation[];
 }
 
 export interface Operation {

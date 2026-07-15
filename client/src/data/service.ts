@@ -1,6 +1,7 @@
 import type {
   ProductionRecord,
   InspectionPlan,
+  FlowStep,
   Operation,
   Dimension,
   InspectionResult,
@@ -200,8 +201,9 @@ export async function deleteComponent(id: number) {
 
 // ============ Inspection Plans CRUD ============
 let planIdCounter = 10;
-let opIdCounter = 20;
-let dimIdCounter = 30;
+let flowStepIdCounter = 20;
+let opIdCounter = 100;
+let dimIdCounter = 200;
 
 export async function getPlans() {
   await delay(300);
@@ -223,34 +225,92 @@ export async function createPlan(componentId: number) {
     is_active: true,
     created_at: new Date().toISOString(),
     operations: [],
+    flow_steps: [],
   };
   mockPlans.push(plan);
   return plan;
 }
 
-export async function addOperation(planId: number, name: string) {
+// ============ Flow Steps (Machine + Operations) ============
+export async function addFlowStep(planId: number, machineId: number) {
   await delay(300);
   const plan = mockPlans.find(p => p.id === planId);
   if (!plan) throw new Error('Plan not found');
-  opIdCounter++;
-  const op: Operation = {
-    id: opIdCounter,
+  flowStepIdCounter++;
+  const step: FlowStep = {
+    id: flowStepIdCounter,
     inspection_plan_id: planId,
-    operation_order: plan.operations.length + 1,
-    operation_name: name,
-    dimensions: [],
+    machine_id: machineId,
+    step_order: plan.flow_steps.length + 1,
+    operations: [],
   };
-  plan.operations.push(op);
-  return op;
+  plan.flow_steps.push(step);
+  return step;
 }
 
-export async function removeOperation(planId: number, operationId: number) {
+export async function removeFlowStep(planId: number, flowStepId: number) {
   await delay(200);
   const plan = mockPlans.find(p => p.id === planId);
   if (!plan) throw new Error('Plan not found');
-  const idx = plan.operations.findIndex(o => o.id === operationId);
-  if (idx > -1) plan.operations.splice(idx, 1);
-  plan.operations.forEach((o, i) => { o.operation_order = i + 1; });
+  const idx = plan.flow_steps.findIndex(s => s.id === flowStepId);
+  if (idx > -1) {
+    plan.flow_steps.splice(idx, 1);
+    plan.flow_steps.forEach((s, i) => { s.step_order = i + 1; });
+  }
+}
+
+export async function moveFlowStep(planId: number, flowStepId: number, direction: 'up' | 'down') {
+  await delay(200);
+  const plan = mockPlans.find(p => p.id === planId);
+  if (!plan) throw new Error('Plan not found');
+  const idx = plan.flow_steps.findIndex(s => s.id === flowStepId);
+  if (idx === -1) throw new Error('Step not found');
+  const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= plan.flow_steps.length) return;
+  [plan.flow_steps[idx], plan.flow_steps[swapIdx]] = [plan.flow_steps[swapIdx], plan.flow_steps[idx]];
+  plan.flow_steps.forEach((s, i) => { s.step_order = i + 1; });
+}
+
+// Operations live inside flow steps
+function findOperation(opId: number): { step: FlowStep; op: Operation } | null {
+  for (const plan of mockPlans) {
+    for (const step of plan.flow_steps) {
+      const op = step.operations.find(o => o.id === opId);
+      if (op) return { step, op };
+    }
+  }
+  return null;
+}
+
+export async function addFlowStepOperation(flowStepId: number, name: string) {
+  await delay(300);
+  let foundStep: FlowStep | null = null;
+  for (const plan of mockPlans) {
+    const step = plan.flow_steps.find(s => s.id === flowStepId);
+    if (step) { foundStep = step; break; }
+  }
+  if (!foundStep) throw new Error('Flow step not found');
+  opIdCounter++;
+  const op: Operation = {
+    id: opIdCounter,
+    inspection_plan_id: 0,
+    operation_order: foundStep.operations.length + 1,
+    operation_name: name,
+    dimensions: [],
+  };
+  foundStep.operations.push(op);
+  return op;
+}
+
+export async function removeFlowStepOperation(flowStepId: number, operationId: number) {
+  await delay(200);
+  for (const plan of mockPlans) {
+    const step = plan.flow_steps.find(s => s.id === flowStepId);
+    if (step) {
+      const idx = step.operations.findIndex(o => o.id === operationId);
+      if (idx > -1) { step.operations.splice(idx, 1); return; }
+    }
+  }
 }
 
 export async function addDimension(
@@ -260,34 +320,27 @@ export async function addDimension(
   await delay(300);
   dimIdCounter++;
   const dim: Dimension = { id: dimIdCounter, operation_id: operationId, ...data };
-  // Find the operation and push
-  for (const plan of mockPlans) {
-    const op = plan.operations.find(o => o.id === operationId);
-    if (op) { op.dimensions.push(dim); break; }
-  }
+  const found = findOperation(operationId);
+  if (found) { found.op.dimensions.push(dim); }
   return dim;
 }
 
 export async function updateDimension(operationId: number, dimensionId: number, data: Partial<Dimension>) {
   await delay(200);
-  for (const plan of mockPlans) {
-    const op = plan.operations.find(o => o.id === operationId);
-    if (op) {
-      const dim = op.dimensions.find(d => d.id === dimensionId);
-      if (dim) { Object.assign(dim, data); return dim; }
-    }
+  const found = findOperation(operationId);
+  if (found) {
+    const dim = found.op.dimensions.find(d => d.id === dimensionId);
+    if (dim) { Object.assign(dim, data); return dim; }
   }
   throw new Error('Dimension not found');
 }
 
 export async function removeDimension(operationId: number, dimensionId: number) {
   await delay(200);
-  for (const plan of mockPlans) {
-    const op = plan.operations.find(o => o.id === operationId);
-    if (op) {
-      const idx = op.dimensions.findIndex(d => d.id === dimensionId);
-      if (idx > -1) { op.dimensions.splice(idx, 1); return; }
-    }
+  const found = findOperation(operationId);
+  if (found) {
+    const idx = found.op.dimensions.findIndex(d => d.id === dimensionId);
+    if (idx > -1) { found.op.dimensions.splice(idx, 1); return; }
   }
 }
 

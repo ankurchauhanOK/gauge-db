@@ -43,36 +43,62 @@ export const mockMachines: Machine[] = [
   { id: 4, machine_code: 'PROD-01', name: 'CNC Lathe 01', ip_address: '192.168.1.10', machine_type: 'production', status: 'running' },
 ];
 
-function makeDimensions(opIdx: number): Dimension[] {
-  if (opIdx === 0) return [
-    { id: 1, operation_id: 1, dimension_name: 'Outer Diameter', nominal: 20.000, min_limit: 19.995, max_limit: 20.005, unit: 'mm', gauge_id: 1, station_id: 1 },
-  ];
-  if (opIdx === 1) return [
-    { id: 2, operation_id: 2, dimension_name: 'Inner Diameter', nominal: 10.000, min_limit: 9.995, max_limit: 10.005, unit: 'mm', gauge_id: 1, station_id: 1 },
-  ];
-  return [
-    { id: 3, operation_id: 3, dimension_name: 'Length', nominal: 30.000, min_limit: 29.990, max_limit: 30.010, unit: 'mm', gauge_id: 2, station_id: 1 },
-  ];
-}
-
 export const mockPlans: InspectionPlan[] = [
   {
     id: 1, component_id: 1, revision: 2, is_active: true, created_at: now.toISOString(),
-    operations: [
-      { id: 1, inspection_plan_id: 1, operation_order: 1, operation_name: 'Rough Turning', dimensions: makeDimensions(0) },
-      { id: 2, inspection_plan_id: 1, operation_order: 2, operation_name: 'Finish Grinding', dimensions: makeDimensions(1) },
-      { id: 3, inspection_plan_id: 1, operation_order: 3, operation_name: 'Final Inspection', dimensions: makeDimensions(2) },
+    operations: [], // computed from flow_steps
+    flow_steps: [
+      {
+        id: 1, inspection_plan_id: 1, machine_id: 4, step_order: 1,
+        operations: [
+          { id: 1, inspection_plan_id: 1, operation_order: 1, operation_name: 'Rough Turning', dimensions: [
+            { id: 1, operation_id: 1, dimension_name: 'Outer Diameter', nominal: 20.000, min_limit: 19.995, max_limit: 20.005, unit: 'mm', gauge_id: 1, station_id: 1 },
+          ]},
+          { id: 2, inspection_plan_id: 1, operation_order: 2, operation_name: 'Facing', dimensions: [
+            { id: 2, operation_id: 2, dimension_name: 'Length', nominal: 30.000, min_limit: 29.990, max_limit: 30.010, unit: 'mm', gauge_id: 1, station_id: 1 },
+          ]},
+        ],
+      },
+      {
+        id: 2, inspection_plan_id: 1, machine_id: 1, step_order: 2,
+        operations: [
+          { id: 3, inspection_plan_id: 1, operation_order: 3, operation_name: 'Dimensional Check', dimensions: [
+            { id: 3, operation_id: 3, dimension_name: 'Inner Diameter', nominal: 10.000, min_limit: 9.995, max_limit: 10.005, unit: 'mm', gauge_id: 1, station_id: 1 },
+            { id: 4, operation_id: 3, dimension_name: 'Outer Diameter', nominal: 20.000, min_limit: 19.995, max_limit: 20.005, unit: 'mm', gauge_id: 1, station_id: 1 },
+          ]},
+          { id: 4, inspection_plan_id: 1, operation_order: 4, operation_name: 'Surface Inspection', dimensions: [
+            { id: 5, operation_id: 4, dimension_name: 'Surface Roughness', nominal: 0.800, min_limit: 0.000, max_limit: 1.600, unit: 'μm', gauge_id: 2, station_id: 1 },
+          ]},
+        ],
+      },
+      {
+        id: 3, inspection_plan_id: 1, machine_id: 3, step_order: 3,
+        operations: [
+          { id: 5, inspection_plan_id: 1, operation_order: 5, operation_name: 'QR Marking', dimensions: [] },
+        ],
+      },
     ],
   },
   {
     id: 2, component_id: 2, revision: 1, is_active: true, created_at: now.toISOString(),
-    operations: [
-      { id: 4, inspection_plan_id: 2, operation_order: 1, operation_name: 'Outer Diameter Turning', dimensions: [
-        { id: 4, operation_id: 4, dimension_name: 'Outer Diameter', nominal: 50.000, min_limit: 49.990, max_limit: 50.010, unit: 'mm', gauge_id: 1, station_id: 2 },
-      ]},
-      { id: 5, inspection_plan_id: 2, operation_order: 2, operation_name: 'Surface Inspection', dimensions: [
-        { id: 5, operation_id: 5, dimension_name: 'Surface Roughness', nominal: 0.800, min_limit: 0.000, max_limit: 1.600, unit: 'μm', gauge_id: 2, station_id: 2 },
-      ]},
+    operations: [],
+    flow_steps: [
+      {
+        id: 4, inspection_plan_id: 2, machine_id: 4, step_order: 1,
+        operations: [
+          { id: 6, inspection_plan_id: 2, operation_order: 1, operation_name: 'Outer Diameter Turning', dimensions: [
+            { id: 6, operation_id: 6, dimension_name: 'Outer Diameter', nominal: 50.000, min_limit: 49.990, max_limit: 50.010, unit: 'mm', gauge_id: 1, station_id: 2 },
+          ]},
+        ],
+      },
+      {
+        id: 5, inspection_plan_id: 2, machine_id: 2, step_order: 2,
+        operations: [
+          { id: 7, inspection_plan_id: 2, operation_order: 2, operation_name: 'Surface Inspection', dimensions: [
+            { id: 7, operation_id: 7, dimension_name: 'Surface Roughness', nominal: 0.800, min_limit: 0.000, max_limit: 1.600, unit: 'μm', gauge_id: 2, station_id: 2 },
+          ]},
+        ],
+      },
     ],
   },
 ];

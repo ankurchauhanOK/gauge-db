@@ -1,58 +1,57 @@
 import { useState, useEffect } from 'react';
 import { getRejectedComponents } from '../data/service';
+import PageHeader from '../components/shared/PageHeader';
 
 export default function RejectedList() {
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { getRejectedComponents().then(d => { setRecords(d as Record<string, unknown>[]); setLoading(false); }); }, []);
+  useEffect(() => {
+    getRejectedComponents().then(d => { setRecords(d as Record<string, unknown>[]); setLoading(false); });
+  }, []);
 
-  if (loading) return <div className="p-6 flex items-center justify-center h-64"><div className="w-8 h-8 border-2 border-gauge-blue border-t-transparent rounded-full animate-spin" /></div>;
+  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-6 h-6 border-2 border-text-primary/20 border-t-text-primary rounded-full animate-spin" /></div>;
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Rejected Components</h1>
-        <span className="text-sm text-surface-400">{records.length} total</span>
-      </div>
+    <div>
+      <PageHeader
+        title="Rejected Components"
+        subtitle={`${records.length} total rejected`}
+      />
 
-      <div className="card overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-surface-700">
-              <Th>Serial Number</Th>
-              <Th>Part Code</Th>
-              <Th>Machine</Th>
-              <Th>Operator</Th>
-              <Th>Reason</Th>
-              <Th>Date</Th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-surface-800">
-            {records.map(r => (
-              <tr key={r.id as number} className="hover:bg-surface-800/50">
-                <td className="py-3 px-4 font-mono text-sm text-gauge-blue">{r.serial as string}</td>
-                <td className="py-3 px-4 text-sm text-surface-200">{r.part as string}</td>
-                <td className="py-3 px-4 text-sm text-surface-400">{r.machine as string}</td>
-                <td className="py-3 px-4 text-sm text-surface-400">{r.operator as string}</td>
-                <td className="py-3 px-4 text-sm text-gauge-red">{(r as { reason?: string }).reason || '-'}</td>
-                <td className="py-3 px-4 text-sm text-surface-500">{r.completed as string}</td>
+      {records.length === 0 ? (
+        <div className="bg-surface rounded-3xl p-10 shadow-card text-center">
+          <p className="font-body text-section text-text-secondary">No rejected components</p>
+          <p className="font-body text-body text-text-secondary mt-1">All components have passed inspection</p>
+        </div>
+      ) : (
+        <div className="bg-surface rounded-3xl shadow-card overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border-light">
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Serial Number</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Part Code</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Machine</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Operator</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Reason</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Date</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {records.length === 0 && (
-        <div className="card text-center py-12">
-          <p className="text-surface-400 text-lg">No rejected components</p>
-          <p className="text-surface-500 text-sm mt-1">All components have passed inspection</p>
+            </thead>
+            <tbody className="divide-y divide-border-light">
+              {records.map(r => (
+                <tr key={r.id as number} className="hover:bg-neutral-50 transition-all duration-150">
+                  <td className="px-6 py-4 font-mono text-body font-medium text-text-primary">{r.serial as string}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-primary">{r.part as string}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">{r.machine as string}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">{r.operator as string}</td>
+                  <td className="px-6 py-4 font-body text-body text-status-fail">{(r as { reason?: string }).reason || '-'}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">{r.completed as string}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
   );
-}
-
-function Th({ children }: { children: string }) {
-  return <th className="text-left py-3 px-4 text-xs font-medium text-surface-500 uppercase tracking-wider">{children}</th>;
 }

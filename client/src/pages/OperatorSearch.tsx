@@ -1,6 +1,18 @@
 import { useState, type FormEvent } from 'react';
 import { getOperatorSearch } from '../data/service';
 import type { ProductionRecord } from '../../../shared/types';
+import PageHeader from '../components/shared/PageHeader';
+import SearchInput from '../components/shared/SearchInput';
+import StatusBadge from '../components/shared/StatusBadge';
+import { motion } from 'framer-motion';
+
+const statusMap: Record<string, 'PASS' | 'FAIL' | 'WARNING' | 'INFO'> = {
+  accepted: 'PASS',
+  rejected: 'FAIL',
+  in_progress: 'WARNING',
+  qr_marked: 'INFO',
+  completed: 'PASS',
+};
 
 export default function OperatorSearch() {
   const [query, setQuery] = useState('');
@@ -23,84 +35,53 @@ export default function OperatorSearch() {
     }
   }
 
-  const statusColor = (status: string) => {
-    switch (status) {
-      case 'accepted':
-      case 'qr_marked': return 'text-gauge-green';
-      case 'rejected': return 'text-gauge-red';
-      default: return 'text-gauge-amber';
-    }
-  };
-
-  const statusLabel = (status: string) => {
-    switch (status) {
-      case 'in_progress': return 'In Progress';
-      case 'accepted': return 'Accepted';
-      case 'rejected': return 'Rejected';
-      case 'qr_marked': return 'QR Marked';
-      case 'completed': return 'Completed';
-      default: return status;
-    }
-  };
-
   return (
-    <div className="p-6">
-      <h1 className="text-xl font-bold text-white mb-6">Search Component</h1>
+    <div>
+      <PageHeader title="Search Component" subtitle="Find components by serial number or part code" />
 
-      <form onSubmit={handleSearch} className="flex gap-3 mb-6">
-        <input
-          type="text"
-          className="input text-lg flex-1"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by Serial Number, Part Code, or QR Code"
-          autoFocus
-        />
+      <form onSubmit={handleSearch} className="flex gap-3 mb-8 max-w-xl">
+        <div className="flex-1">
+          <SearchInput
+            value={query}
+            onChange={setQuery}
+            placeholder="Search by Serial Number, Part Code..."
+          />
+        </div>
         <button type="submit" className="btn-primary px-8" disabled={loading || !query.trim()}>
           {loading ? (
             <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
-          ) : (
-            'Search'
-          )}
+          ) : 'Search'}
         </button>
       </form>
 
       {searched && !loading && results.length === 0 && (
-        <div className="card text-center py-12">
-          <p className="text-surface-400 text-lg">No components found</p>
-          <p className="text-surface-500 text-sm mt-1">Try a different search term</p>
-        </div>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-surface rounded-3xl p-10 shadow-card text-center max-w-lg">
+          <p className="font-body text-section text-text-secondary">No components found</p>
+          <p className="font-body text-body text-text-secondary mt-1">Try a different search term</p>
+        </motion.div>
       )}
 
       {results.length > 0 && (
-        <div className="card overflow-hidden">
+        <div className="bg-surface rounded-3xl shadow-card overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-surface-700">
-                <Th>Serial Number</Th>
-                <Th>Part Code</Th>
-                <Th>Date</Th>
-                <Th>Status</Th>
+              <tr className="border-b border-border-light">
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Serial Number</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Part Code</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Date</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-800">
+            <tbody className="divide-y divide-border-light">
               {results.map((r) => (
-                <tr key={r.id} className="hover:bg-surface-800/50 transition-colors">
-                  <td className="py-3 px-4">
-                    <span className="font-mono text-sm text-gauge-blue">{r.serial_number}</span>
+                <tr key={r.id} className="hover:bg-neutral-50 transition-all duration-150">
+                  <td className="px-6 py-4 font-mono text-body font-medium text-text-primary">{r.serial_number}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-primary">{r.part_code}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">
+                    {new Date(r.started_at).toLocaleDateString('en-GB')}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-surface-200">{r.part_code}</span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-surface-400">
-                      {new Date(r.started_at).toLocaleDateString('en-GB')}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4">
-                    <span className={`text-sm font-semibold ${statusColor(r.status)}`}>
-                      {statusLabel(r.status)}
-                    </span>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={statusMap[r.status] || 'WARNING'} size="sm" />
                   </td>
                 </tr>
               ))}
@@ -110,21 +91,11 @@ export default function OperatorSearch() {
       )}
 
       {!searched && (
-        <div className="card text-center py-16">
-          <p className="text-surface-500 text-lg">Enter a serial number or part code to search</p>
-          <p className="text-surface-600 text-sm mt-2">
-            e.g. SB2507140001 or BUSH-001
-          </p>
+        <div className="bg-surface rounded-3xl p-10 shadow-card text-center max-w-lg">
+          <p className="font-body text-section text-text-secondary">Enter a serial number or part code to search</p>
+          <p className="font-body text-body text-text-secondary mt-2">e.g. SB2507140001 or BUSH-001</p>
         </div>
       )}
     </div>
-  );
-}
-
-function Th({ children }: { children: string }) {
-  return (
-    <th className="text-left py-3 px-4 text-xs font-medium text-surface-500 uppercase tracking-wider">
-      {children}
-    </th>
   );
 }

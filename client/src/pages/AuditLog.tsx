@@ -1,52 +1,55 @@
 import { useState, useEffect } from 'react';
 import { getAuditLogs } from '../data/service';
+import PageHeader from '../components/shared/PageHeader';
+
+const actionColors: Record<string, string> = {
+  login: 'text-status-info',
+  logout: 'text-status-info',
+  create: 'text-status-pass',
+  update: 'text-status-warning',
+  delete: 'text-status-fail',
+};
 
 export default function AuditLog() {
   const [logs, setLogs] = useState<{ id: number; user: string; action: string; entity: string; details: string; date: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { getAuditLogs().then(d => { setLogs(d); setLoading(false); }); }, []);
-
-  const actionColor = (a: string) => {
-    switch (a.toLowerCase()) {
-      case 'login': case 'logout': return 'text-gauge-blue';
-      case 'create': return 'text-gauge-green';
-      case 'update': return 'text-gauge-amber';
-      case 'delete': return 'text-gauge-red';
-      default: return 'text-surface-300';
-    }
-  };
+  useEffect(() => {
+    getAuditLogs().then(d => { setLogs(d); setLoading(false); });
+  }, []);
 
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-white">Audit Log</h1>
+    <div>
+      <PageHeader title="Audit Log" subtitle="System-wide activity tracking" />
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="w-6 h-6 border-2 border-gauge-blue border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-text-primary/20 border-t-text-primary rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="bg-surface rounded-3xl shadow-card overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-surface-700">
-                <Th>User</Th>
-                <Th>Action</Th>
-                <Th>Entity</Th>
-                <Th>Details</Th>
-                <Th>Date</Th>
+              <tr className="border-b border-border-light">
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">User</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Action</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Entity</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Details</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Date</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-800">
+            <tbody className="divide-y divide-border-light">
               {logs.map(l => (
-                <tr key={l.id} className="hover:bg-surface-800/50">
-                  <td className="py-3 px-4 text-sm font-mono text-surface-200">{l.user}</td>
-                  <td className="py-3 px-4">
-                    <span className={`text-sm font-semibold ${actionColor(l.action)}`}>{l.action}</span>
+                <tr key={l.id} className="hover:bg-neutral-50 transition-all duration-150">
+                  <td className="px-6 py-4 font-mono text-body text-text-primary">{l.user}</td>
+                  <td className="px-6 py-4">
+                    <span className={`font-body text-body font-semibold ${actionColors[l.action.toLowerCase()] || 'text-text-primary'}`}>
+                      {l.action}
+                    </span>
                   </td>
-                  <td className="py-3 px-4 text-sm text-surface-400">{l.entity}</td>
-                  <td className="py-3 px-4 text-sm text-surface-300 max-w-md truncate">{l.details}</td>
-                  <td className="py-3 px-4 text-sm text-surface-500">{l.date}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">{l.entity}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary max-w-md truncate">{l.details}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary whitespace-nowrap">{l.date}</td>
                 </tr>
               ))}
             </tbody>
@@ -55,8 +58,4 @@ export default function AuditLog() {
       )}
     </div>
   );
-}
-
-function Th({ children }: { children: string }) {
-  return <th className="text-left py-3 px-4 text-xs font-medium text-surface-500 uppercase tracking-wider">{children}</th>;
 }

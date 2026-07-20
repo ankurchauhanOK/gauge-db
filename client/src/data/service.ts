@@ -215,11 +215,12 @@ export async function getPlan(id: number) {
   return mockPlans.find(p => p.id === id);
 }
 
-export async function createPlan(componentId: number) {
+export async function createPlan(name: string, componentId: number) {
   await delay(500);
   planIdCounter++;
   const plan: InspectionPlan = {
     id: planIdCounter,
+    name,
     component_id: componentId,
     revision: 1,
     is_active: true,
@@ -229,6 +230,12 @@ export async function createPlan(componentId: number) {
   };
   mockPlans.push(plan);
   return plan;
+}
+
+export async function deletePlan(id: number) {
+  await delay(200);
+  const idx = mockPlans.findIndex(p => p.id === id);
+  if (idx > -1) mockPlans.splice(idx, 1);
 }
 
 // ============ Flow Steps (Machine + Operations) ============

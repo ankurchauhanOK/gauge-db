@@ -40,6 +40,7 @@ export interface ComponentCreate {
 // ============ Inspection Plans ============
 export interface InspectionPlan {
   id: number;
+  name: string;
   component_id: number;
   revision: number;
   is_active: boolean;

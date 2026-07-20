@@ -1,5 +1,20 @@
 import { useState, useEffect } from 'react';
 import { getProductionRecords } from '../data/service';
+import PageHeader from '../components/shared/PageHeader';
+import SearchInput from '../components/shared/SearchInput';
+import StatusBadge from '../components/shared/StatusBadge';
+
+const statusMap: Record<string, 'PASS' | 'FAIL' | 'WARNING' | 'INFO'> = {
+  accepted: 'PASS',
+  rejected: 'FAIL',
+  in_progress: 'WARNING',
+};
+
+const qrColors: Record<string, string> = {
+  marked: 'bg-status-pass/8 text-status-pass',
+  pending: 'bg-status-warning/8 text-status-warning',
+  'n/a': 'bg-neutral-100 text-text-secondary/50',
+};
 
 export default function ProductionRecords() {
   const [records, setRecords] = useState<any[]>([]);
@@ -19,71 +34,63 @@ export default function ProductionRecords() {
 
   const machines = [...new Set(records.map(r => r.machine))];
 
-  function statusColor(s: string) {
-    switch (s) {
-      case 'accepted': return 'text-gauge-green';
-      case 'rejected': return 'text-gauge-red';
-      default: return 'text-gauge-amber';
-    }
-  }
-
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold text-white">Production Records</h1>
+    <div>
+      <PageHeader title="Production Records" subtitle="Track all production runs" />
 
-      <div className="flex gap-4 flex-wrap">
-        <select className="input w-40" value={status} onChange={e => setStatus(e.target.value)}>
+      <div className="flex gap-3 mb-6 items-center">
+        <select className="input w-36" value={status} onChange={e => setStatus(e.target.value)}>
           <option value="all">All Status</option>
           <option value="accepted">Accepted</option>
           <option value="rejected">Rejected</option>
           <option value="in_progress">In Progress</option>
         </select>
-        <select className="input w-44" value={machine} onChange={e => setMachine(e.target.value)}>
+        <select className="input w-40" value={machine} onChange={e => setMachine(e.target.value)}>
           <option value="all">All Machines</option>
           {machines.map(m => <option key={m} value={m}>{m}</option>)}
         </select>
         <div className="flex-1 flex gap-2">
-          <input className="input flex-1" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search serial or part..." onKeyDown={e => e.key === 'Enter' && load()} />
-          <button onClick={load} className="btn-primary">Search</button>
+          <div className="flex-1">
+            <SearchInput value={search} onChange={setSearch} placeholder="Search serial or part..." />
+          </div>
+          <button onClick={load} className="btn-secondary">Search</button>
         </div>
       </div>
 
       {loading ? (
         <div className="flex items-center justify-center h-32">
-          <div className="w-6 h-6 border-2 border-gauge-blue border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-text-primary/20 border-t-text-primary rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="card overflow-hidden">
+        <div className="bg-surface rounded-3xl shadow-card overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-surface-700">
-                <Th>Serial</Th>
-                <Th>Part</Th>
-                <Th>Machine</Th>
-                <Th>Operator</Th>
-                <Th>Started</Th>
-                <Th>Status</Th>
-                <Th>QR</Th>
+              <tr className="border-b border-border-light">
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Serial</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Part</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Machine</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Operator</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Started</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">Status</th>
+                <th className="text-left text-tiny font-body font-semibold text-text-secondary uppercase tracking-wider px-6 py-4">QR</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-800">
+            <tbody className="divide-y divide-border-light">
               {records.map(r => (
-                <tr key={r.id} className="hover:bg-surface-800/50">
-                  <td className="py-3 px-4 font-mono text-sm text-gauge-blue">{r.serial}</td>
-                  <td className="py-3 px-4 text-sm text-surface-200">{r.part}</td>
-                  <td className="py-3 px-4 text-sm text-surface-400">{r.machine}</td>
-                  <td className="py-3 px-4 text-sm text-surface-400">{r.operator}</td>
-                  <td className="py-3 px-4 text-sm text-surface-400">{r.started}</td>
-                  <td className="py-3 px-4">
-                    <span className={`text-sm font-semibold ${statusColor(r.status as string)}`}>{r.status}</span>
-                    {(r as { reason?: string }).reason && <p className="text-xs text-gauge-red mt-0.5">{(r as { reason?: string }).reason}</p>}
+                <tr key={r.id} className="hover:bg-neutral-50 transition-all duration-150">
+                  <td className="px-6 py-4 font-mono text-body font-medium text-text-primary">{r.serial}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-primary">{r.part}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">{r.machine}</td>
+                  <td className="px-6 py-4 font-body text-body text-text-secondary">{r.operator}</td>
+                  <td className="px-6 py-4 font-body text-small text-text-secondary">{r.started}</td>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={statusMap[r.status] || 'WARNING'} size="sm" />
+                    {r.reason && <p className="font-body text-tiny text-status-fail mt-1">{r.reason}</p>}
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      r.qr_status === 'marked' ? 'bg-gauge-green/10 text-gauge-green' :
-                      r.qr_status === 'pending' ? 'bg-gauge-amber/10 text-gauge-amber' :
-                      'bg-surface-700 text-surface-400'
-                    }`}>{r.qr_status}</span>
+                  <td className="px-6 py-4">
+                    <span className={`font-body text-tiny font-semibold px-2.5 py-1 rounded-full ${qrColors[r.qr_status] || ''}`}>
+                      {r.qr_status}
+                    </span>
                   </td>
                 </tr>
               ))}
@@ -93,8 +100,4 @@ export default function ProductionRecords() {
       )}
     </div>
   );
-}
-
-function Th({ children }: { children: string }) {
-  return <th className="text-left py-3 px-4 text-xs font-medium text-surface-500 uppercase tracking-wider">{children}</th>;
 }

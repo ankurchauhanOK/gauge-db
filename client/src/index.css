@@ -11,89 +11,101 @@
     font-size: 16px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scroll-behavior: smooth;
   }
 
   body {
-    @apply bg-surface-950 text-surface-100;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
-      Ubuntu, Cantarell, 'Helvetica Neue', Arial, sans-serif;
+    font-family: 'Manrope', system-ui, sans-serif;
   }
 
-  /* Touch-friendly scrollbar */
+  ::selection {
+    background-color: rgba(37, 99, 235, 0.12);
+    color: #111111;
+  }
+
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-surface-900;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-600 rounded;
+    background: #D4D4D4;
+    border-radius: 999px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-surface-500;
+    background: #A3A3A3;
   }
 }
 
 @layer components {
-  .btn-primary {
-    @apply bg-gauge-blue hover:bg-blue-600 text-white font-semibold
-      min-h-touch px-6 rounded-lg transition-colors duration-150
-      disabled:opacity-50 disabled:cursor-not-allowed
-      focus:outline-none focus:ring-2 focus:ring-gauge-blue focus:ring-offset-2 focus:ring-offset-surface-900;
+  .card {
+    @apply bg-surface rounded-3xl p-6 shadow-card;
   }
 
-  .btn-danger {
-    @apply bg-gauge-red hover:bg-red-600 text-white font-semibold
-      min-h-touch px-6 rounded-lg transition-colors duration-150;
+  .btn-primary {
+    @apply bg-text-primary hover:bg-neutral-800 text-white font-body font-semibold
+      h-12 px-8 rounded-2xl transition-all duration-apple ease-apple
+      disabled:opacity-40 disabled:cursor-not-allowed
+      focus:outline-none focus:ring-2 focus:ring-text-primary/20;
   }
 
   .btn-secondary {
-    @apply bg-surface-700 hover:bg-surface-600 text-surface-200 font-semibold
-      min-h-touch px-6 rounded-lg transition-colors duration-150
-      border border-surface-600;
+    @apply bg-neutral-100 hover:bg-neutral-200 text-text-primary font-body font-semibold
+      h-12 px-8 rounded-2xl transition-all duration-apple ease-apple
+      border border-border;
   }
 
   .btn-ghost {
-    @apply bg-transparent hover:bg-surface-800 text-surface-300 font-semibold
-      min-h-touch px-4 rounded-lg transition-colors duration-150;
+    @apply bg-transparent hover:bg-neutral-100 text-text-secondary font-body font-semibold
+      h-12 px-5 rounded-2xl transition-all duration-apple ease-apple;
   }
 
-  .card {
-    @apply bg-surface-900 border border-surface-700 rounded-xl p-5;
+  .btn-danger {
+    @apply bg-status-fail hover:bg-red-700 text-white font-body font-semibold
+      h-12 px-8 rounded-2xl transition-all duration-apple ease-apple;
   }
 
   .input {
-    @apply w-full bg-surface-800 border border-surface-600 rounded-lg px-4
-      min-h-touch text-surface-100 placeholder-surface-500
-      focus:outline-none focus:border-gauge-blue focus:ring-1 focus:ring-gauge-blue
-      transition-colors duration-150;
+    @apply w-full bg-surface border border-border rounded-2xl px-5
+      h-12 text-text-primary placeholder:text-text-secondary/50
+      focus:outline-none focus:border-text-primary/30 focus:ring-1 focus:ring-text-primary/10
+      transition-all duration-apple ease-apple;
   }
 
   .label {
-    @apply block text-sm font-medium text-surface-400 mb-1.5;
+    @apply block text-small font-medium text-text-secondary mb-1.5;
+  }
+
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-small font-semibold;
   }
 
   .status-pass {
-    @apply text-gauge-green;
+    @apply text-status-pass;
   }
 
   .status-fail {
-    @apply text-gauge-red;
+    @apply text-status-fail;
   }
 
   .status-warning {
-    @apply text-gauge-amber;
+    @apply text-status-warning;
   }
 
-  .stat-value {
-    @apply text-3xl font-bold tracking-tight;
+  .status-info {
+    @apply text-status-info;
   }
 
-  .stat-label {
-    @apply text-sm text-surface-400 uppercase tracking-wider;
+  .status-offline {
+    @apply text-status-offline;
+  }
+
+  .divider {
+    @apply border-t border-border-light;
   }
 }

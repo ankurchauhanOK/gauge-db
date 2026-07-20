@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { startProcess, getAvailableComponents } from '../data/service';
 import type { Component } from '../../../shared/types';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function StartProcess() {
   const navigate = useNavigate();
@@ -41,111 +42,118 @@ export default function StartProcess() {
 
   if (serial) {
     return (
-      <div className="p-6">
-        <div className="max-w-lg mx-auto pt-16">
-          <div className="card text-center space-y-6">
-            <div className="w-16 h-16 bg-gauge-blue/10 rounded-full flex items-center justify-center mx-auto">
-              <span className="text-gauge-blue text-3xl">⚙</span>
+      <div className="flex items-center justify-center h-full">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-lg w-full"
+        >
+          <div className="bg-surface rounded-3xl p-10 shadow-card text-center space-y-6">
+            <div className="w-16 h-16 bg-neutral-100 rounded-3xl flex items-center justify-center mx-auto">
+              <svg className="w-8 h-8 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 6v6l4 2" />
+              </svg>
             </div>
 
             <div>
-              <p className="text-surface-400 text-sm uppercase tracking-wider">Serial Number Generated</p>
-              <p className="text-gauge-3xl font-mono font-bold tracking-wider text-gauge-blue mt-2">
+              <p className="font-body text-small text-text-secondary tracking-wide">Serial Number Generated</p>
+              <p className="font-heading font-bold text-display text-text-primary tracking-wider mt-2">
                 {serial}
               </p>
             </div>
 
-            <div className="bg-surface-800 rounded-lg p-4 space-y-2 text-left">
-              <Row label="Component" value={`${selected?.part_code} — ${selected?.description}`} />
-              <Row label="Machine" value="Inspection Station 1" />
-              <Row label="Operator" value={user?.name || '-'} />
+            <div className="bg-neutral-50 rounded-2xl p-5 space-y-2 text-left">
+              <div className="flex justify-between">
+                <span className="font-body text-small text-text-secondary">Component</span>
+                <span className="font-body text-small font-medium text-text-primary">{selected?.part_code} — {selected?.description}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-body text-small text-text-secondary">Machine</span>
+                <span className="font-body text-small font-medium text-text-primary">Inspection Station 1</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="font-body text-small text-text-secondary">Operator</span>
+                <span className="font-body text-small font-medium text-text-primary">{user?.name || '-'}</span>
+              </div>
             </div>
 
-            <div className="pt-2">
-              <p className="text-surface-400 text-sm">Starting inspection in</p>
-              <p className="text-gauge-2xl font-bold text-white">{countdown}s</p>
-              <div className="w-full bg-surface-700 rounded-full h-2 mt-3">
-                <div
-                  className="bg-gauge-blue h-2 rounded-full transition-all duration-1000 ease-linear"
-                  style={{ width: `${((3 - countdown) / 3) * 100}%` }}
+            <div>
+              <p className="font-body text-small text-text-secondary">Starting inspection in</p>
+              <p className="font-heading font-bold text-display text-text-primary">{countdown}s</p>
+              <div className="w-full bg-neutral-100 rounded-full h-1 mt-3 overflow-hidden">
+                <motion.div
+                  className="h-full bg-text-primary rounded-full"
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${((3 - countdown) / 3) * 100}%` }}
+                  transition={{ duration: 1, ease: 'linear' }}
                 />
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="max-w-lg mx-auto pt-12">
-        <h1 className="text-xl font-bold text-white mb-6">Start New Process</h1>
+    <div className="max-w-lg mx-auto pt-8">
+      <div className="mb-10">
+        <h1 className="font-heading font-semibold text-title text-text-primary">Start New Process</h1>
+        <p className="font-body text-body text-text-secondary mt-1">Select a component to begin inspection</p>
+      </div>
 
-        <div className="card space-y-6">
-          <div>
-            <label className="label">Component</label>
-            <select
-              className="input text-lg"
-              value={selectedComponent}
-              onChange={(e) => setSelectedComponent(Number(e.target.value))}
-            >
-              {components.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.part_code} — {c.description}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="label">Inspection Station</label>
-            <select className="input text-lg" defaultValue={1}>
-              <option value={1}>Inspection Station 1</option>
-              <option value={2}>Inspection Station 2</option>
-            </select>
-          </div>
-
-          <div className="bg-surface-800 rounded-lg p-4 space-y-1">
-            <p className="text-xs text-surface-500">Inspection Plan</p>
-            <p className="text-sm text-surface-200">
-              {selected?.part_code} — {selected?.description}
-            </p>
-            <p className="text-xs text-surface-400">3 operations · 3 dimensions</p>
-          </div>
-
-          <button
-            onClick={handleStart}
-            className="btn-primary w-full text-lg py-4"
-            disabled={loading}
+      <div className="bg-surface rounded-3xl p-8 shadow-card space-y-6">
+        <div>
+          <label className="label">Component</label>
+          <select
+            className="input"
+            value={selectedComponent}
+            onChange={(e) => setSelectedComponent(Number(e.target.value))}
           >
-            {loading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Generating Serial...
-              </span>
-            ) : (
-              'Generate Serial & Start Inspection'
-            )}
-          </button>
+            {components.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.part_code} — {c.description}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="label">Inspection Station</label>
+          <select className="input" defaultValue={1}>
+            <option value={1}>Inspection Station 1</option>
+            <option value={2}>Inspection Station 2</option>
+          </select>
+        </div>
+
+        <div className="bg-neutral-50 rounded-2xl p-5 space-y-1">
+          <p className="font-body text-tiny text-text-secondary">Inspection Plan</p>
+          <p className="font-body text-body font-medium text-text-primary">
+            {selected?.part_code} — {selected?.description}
+          </p>
+          <p className="font-body text-tiny text-text-secondary">3 operations · 3 dimensions</p>
         </div>
 
         <button
-          onClick={() => navigate('/operator/dashboard')}
-          className="btn-ghost w-full mt-4"
+          onClick={handleStart}
+          className="btn-primary w-full"
+          disabled={loading}
         >
-          Back to Dashboard
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Generating Serial...
+            </span>
+          ) : (
+            'Generate Serial & Start Inspection'
+          )}
         </button>
       </div>
-    </div>
-  );
-}
 
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between">
-      <span className="text-xs text-surface-500">{label}</span>
-      <span className="text-sm text-surface-200 font-medium">{value}</span>
+      <button onClick={() => navigate('/operator/dashboard')} className="btn-ghost w-full mt-4">
+        Back to Dashboard
+      </button>
     </div>
   );
 }

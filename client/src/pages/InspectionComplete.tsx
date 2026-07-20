@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 export default function InspectionComplete() {
   const { serial } = useParams<{ serial: string }>();
@@ -25,35 +26,45 @@ export default function InspectionComplete() {
   }, [navigate]);
 
   const now = new Date();
-  const timeStr = now.toLocaleTimeString('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
-  const dateStr = now.toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+  const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const dateStr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
   return (
-    <div className="p-6 h-full flex items-center justify-center">
-      <div className="max-w-md w-full text-center space-y-8">
+    <div className="flex items-center justify-center h-full">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
+        className="max-w-md w-full text-center space-y-8"
+      >
         {/* Status icon */}
-        <div className={`w-32 h-32 rounded-full flex items-center justify-center mx-auto ${
-          isAccepted ? 'bg-gauge-green/10' : 'bg-gauge-red/10'
-        }`}>
-          <span className={`text-6xl ${isAccepted ? 'text-gauge-green' : 'text-gauge-red'}`}>
-            {isAccepted ? '✓' : '✕'}
-          </span>
-        </div>
+        <motion.div
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 180, damping: 14, delay: 0.1 }}
+          className={`w-28 h-28 rounded-full flex items-center justify-center mx-auto ${
+            isAccepted ? 'bg-status-pass/10' : 'bg-status-fail/10'
+          }`}
+        >
+          {isAccepted ? (
+            <svg className="w-12 h-12 text-status-pass" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <polyline points="20,6 9,17 4,12" />
+            </svg>
+          ) : (
+            <svg className="w-12 h-12 text-status-fail" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          )}
+        </motion.div>
 
         {/* Result */}
         <div>
-          <h1 className={`text-4xl font-bold ${isAccepted ? 'text-gauge-green' : 'text-gauge-red'}`}>
+          <h1 className={`font-heading font-bold text-title ${isAccepted ? 'text-status-pass' : 'text-status-fail'}`}>
             {isAccepted ? 'Component Accepted' : 'Component Rejected'}
           </h1>
-          <p className="text-surface-400 mt-2">
+          <p className="font-body text-body text-text-secondary mt-2">
             {isAccepted
               ? 'All inspections passed successfully'
               : 'One or more inspections failed'}
@@ -61,60 +72,60 @@ export default function InspectionComplete() {
         </div>
 
         {/* Details */}
-        <div className="card space-y-3 text-left">
-          <div className="flex justify-between">
-            <span className="text-surface-400 text-sm">Serial Number</span>
-            <span className="font-mono text-surface-200 font-medium">{serial}</span>
+        <div className="bg-surface rounded-3xl p-6 shadow-card space-y-3 text-left">
+          <div className="flex justify-between py-1">
+            <span className="font-body text-small text-text-secondary">Serial Number</span>
+            <span className="font-mono text-body font-medium text-text-primary">{serial}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-surface-400 text-sm">Date</span>
-            <span className="text-surface-200 text-sm">{dateStr}</span>
+          <div className="flex justify-between py-1">
+            <span className="font-body text-small text-text-secondary">Date</span>
+            <span className="font-body text-small text-text-primary">{dateStr}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-surface-400 text-sm">Time</span>
-            <span className="text-surface-200 text-sm">{timeStr}</span>
+          <div className="flex justify-between py-1">
+            <span className="font-body text-small text-text-secondary">Time</span>
+            <span className="font-body text-small text-text-primary">{timeStr}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-surface-400 text-sm">Final Status</span>
-            <span className={`font-bold ${isAccepted ? 'text-gauge-green' : 'text-gauge-red'}`}>
+          <div className="flex justify-between py-1">
+            <span className="font-body text-small text-text-secondary">Final Status</span>
+            <span className={`font-heading font-semibold text-body ${isAccepted ? 'text-status-pass' : 'text-status-fail'}`}>
               {isAccepted ? 'ACCEPTED' : 'REJECTED'}
             </span>
           </div>
           {!isAccepted && (
-            <div className="border-t border-surface-700 pt-3 mt-3">
-              <span className="text-surface-400 text-sm">Rejection Reason</span>
-              <p className="text-gauge-red text-sm mt-1">Dimension Out of Tolerance — see inspection history for details</p>
+            <div className="border-t border-border-light pt-3 mt-3">
+              <span className="font-body text-small text-text-secondary">Rejection Reason</span>
+              <p className="font-body text-small text-status-fail mt-1">Dimension Out of Tolerance — see inspection history for details</p>
             </div>
           )}
           {isAccepted && (
-            <div className="border-t border-surface-700 pt-3 mt-3">
-              <span className="text-surface-400 text-sm">QR Marking</span>
-              <p className="text-gauge-amber text-sm mt-1">Ready for QR code marking</p>
+            <div className="border-t border-border-light pt-3 mt-3">
+              <span className="font-body text-small text-text-secondary">QR Marking</span>
+              <p className="font-body text-small text-status-warning mt-1">Ready for QR code marking</p>
             </div>
           )}
         </div>
 
         {/* Countdown */}
         <div className="space-y-3">
-          <p className="text-surface-500 text-sm">Returning to dashboard in</p>
-          <p className="text-gauge-2xl font-bold text-white">{countdown}s</p>
-          <div className="w-full bg-surface-700 rounded-full h-2 max-w-xs mx-auto">
-            <div
-              className={`h-2 rounded-full transition-all duration-1000 ease-linear ${
-                isAccepted ? 'bg-gauge-green' : 'bg-gauge-red'
-              }`}
-              style={{ width: `${((5 - countdown) / 5) * 100}%` }}
+          <p className="font-body text-small text-text-secondary">Returning to dashboard in</p>
+          <p className="font-heading font-bold text-display text-text-primary">{countdown}s</p>
+          <div className="w-full bg-neutral-100 rounded-full h-1 max-w-xs mx-auto overflow-hidden">
+            <motion.div
+              className={`h-full rounded-full ${isAccepted ? 'bg-status-pass' : 'bg-status-fail'}`}
+              initial={{ width: '0%' }}
+              animate={{ width: `${((5 - countdown) / 5) * 100}%` }}
+              transition={{ duration: 1, ease: 'linear' }}
             />
           </div>
         </div>
 
         <button
           onClick={() => navigate('/operator/dashboard')}
-          className="btn-primary px-12"
+          className="btn-primary"
         >
           Return Now
         </button>
-      </div>
+      </motion.div>
     </div>
   );
 }

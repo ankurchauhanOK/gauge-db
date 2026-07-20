@@ -45,8 +45,8 @@ export const mockMachines: Machine[] = [
 
 export const mockPlans: InspectionPlan[] = [
   {
-    id: 1, component_id: 1, revision: 2, is_active: true, created_at: now.toISOString(),
-    operations: [], // computed from flow_steps
+    id: 1, name: 'Bushing Precision Line', component_id: 1, revision: 2, is_active: true, created_at: now.toISOString(),
+    operations: [],
     flow_steps: [
       {
         id: 1, inspection_plan_id: 1, machine_id: 4, step_order: 1,
@@ -80,7 +80,7 @@ export const mockPlans: InspectionPlan[] = [
     ],
   },
   {
-    id: 2, component_id: 2, revision: 1, is_active: true, created_at: now.toISOString(),
+    id: 2, name: 'Piston Assembly Flow', component_id: 2, revision: 1, is_active: true, created_at: now.toISOString(),
     operations: [],
     flow_steps: [
       {

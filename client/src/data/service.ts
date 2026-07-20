@@ -10,6 +10,10 @@ import type {
   Dimension,
   FlowStep,
   Operation,
+  ComponentDetail,
+  Measurement,
+  ManufacturingStep,
+  ComponentRevision,
 } from '../../../shared/types';
 import {
   mockComponents,
@@ -17,6 +21,7 @@ import {
   mockMachines,
   mockGauges,
   mockUsers,
+  mockComponentDetails,
   operatorDashboardMock,
   adminDashboardMock,
   getCurrentShift,
@@ -108,11 +113,74 @@ function flattenParameters(plan: InspectionPlan): FlatParameter[] {
   return params;
 }
 
-// ============ Get flat parameters for a component ============
+// ============ Component Detail (replaces InspectionPlan) ============
+export async function getComponentDetail(componentId: number): Promise<ComponentDetail | null> {
+  await delay(200);
+  return mockComponentDetails[componentId] || null;
+}
+
 export function getFlatParameters(componentId: number): FlatParameter[] {
-  const plan = mockPlans.find(p => p.component_id === componentId);
-  if (!plan) return [];
-  return flattenParameters(plan);
+  const detail = mockComponentDetails[componentId];
+  if (!detail) return [];
+  let order = 0;
+  return detail.measurements.map(m => ({
+    id: m.id,
+    name: m.name,
+    nominal: m.nominal,
+    min_limit: m.min_limit,
+    max_limit: m.max_limit,
+    unit: m.unit,
+    sort_order: ++order,
+  }));
+}
+
+export async function saveComponentMeasurements(componentId: number, measurements: Measurement[]): Promise<Measurement[]> {
+  await delay(300);
+  if (mockComponentDetails[componentId]) {
+    mockComponentDetails[componentId].measurements = measurements;
+  }
+  return measurements;
+}
+
+export async function saveComponentFlow(componentId: number, steps: ManufacturingStep[]): Promise<ManufacturingStep[]> {
+  await delay(300);
+  if (mockComponentDetails[componentId]) {
+    mockComponentDetails[componentId].flow_steps = steps;
+  }
+  return steps;
+}
+
+export async function createComponentRevision(componentId: number, description: string): Promise<ComponentRevision> {
+  await delay(300);
+  const detail = mockComponentDetails[componentId];
+  if (!detail) throw new Error('Component not found');
+  const prev = detail.revisions[detail.revisions.length - 1];
+  const rev: ComponentRevision = {
+    revision: (prev?.revision || 0) + 1,
+    description,
+    created_at: new Date().toISOString(),
+    created_by: 'System Administrator',
+  };
+  detail.revisions.push(rev);
+  detail.component.revision = rev.revision;
+  return rev;
+}
+
+export function getGaugeAssignments(): { gaugeId: number; componentPartCodes: string[] }[] {
+  const map = new Map<number, Set<string>>();
+  for (const cid in mockComponentDetails) {
+    const detail = mockComponentDetails[cid];
+    for (const m of detail.measurements) {
+      if (m.gauge_id != null) {
+        if (!map.has(m.gauge_id)) map.set(m.gauge_id, new Set());
+        map.get(m.gauge_id)!.add(detail.component.part_code);
+      }
+    }
+  }
+  return Array.from(map.entries()).map(([gaugeId, parts]) => ({
+    gaugeId,
+    componentPartCodes: Array.from(parts),
+  }));
 }
 
 // ============ Start a new inspection ============
@@ -125,8 +193,16 @@ export async function startInspection(
   inspectionCounter++;
   const comp = mockComponents.find(c => c.id === componentId)!;
   const serial = generateSerial();
-  const plan = mockPlans.find(p => p.component_id === componentId);
-  const parameters = plan ? flattenParameters(plan) : [];
+  const detail = mockComponentDetails[componentId];
+  const parameters = detail ? detail.measurements.map((m, i) => ({
+    id: m.id,
+    name: m.name,
+    nominal: m.nominal,
+    min_limit: m.min_limit,
+    max_limit: m.max_limit,
+    unit: m.unit,
+    sort_order: i + 1,
+  })) : [];
 
   const record: InspectionRecord = {
     id: Date.now() + inspectionCounter,

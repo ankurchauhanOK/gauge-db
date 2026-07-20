@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { getComponents, createComponent, updateComponent, deleteComponent } from '../data/service';
 import type { Component } from '../../../shared/types';
 import PageHeader from '../components/shared/PageHeader';
 import Modal from '../components/common/Modal';
 
 export default function ComponentList() {
+  const navigate = useNavigate();
   const [components, setComponents] = useState<Component[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -82,7 +84,11 @@ export default function ComponentList() {
             </thead>
             <tbody className="divide-y divide-border-light">
               {components.map((c) => (
-                <tr key={c.id} className="hover:bg-neutral-50 transition-all duration-150">
+                <tr
+                  key={c.id}
+                  onClick={() => navigate(`/admin/components/${c.id}`)}
+                  className="hover:bg-neutral-50 transition-all duration-150 cursor-pointer"
+                >
                   <td className="px-6 py-4 font-mono text-body font-medium text-text-primary">{c.part_code}</td>
                   <td className="px-6 py-4 font-body text-body text-text-primary">{c.description}</td>
                   <td className="px-6 py-4 font-body text-body text-text-secondary">{c.customer}</td>
@@ -95,7 +101,7 @@ export default function ComponentList() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2 justify-end" onClick={e => e.stopPropagation()}>
                       <button onClick={() => openEdit(c)} className="font-body text-tiny font-medium text-text-secondary hover:text-text-primary transition-all duration-150">Edit</button>
                       <button onClick={() => handleToggleStatus(c)} className="font-body text-tiny font-medium text-text-secondary hover:text-status-warning transition-all duration-150">
                         {c.status === 'active' ? 'Deactivate' : 'Activate'}

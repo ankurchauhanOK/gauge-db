@@ -46,7 +46,6 @@ export const sections: Section[] = [
     icon: Factory,
     items: [
       { label: 'Component Library', path: '/admin/components', roles: ['admin', 'quality'] },
-      { label: 'Inspection Plans', path: '/admin/plans', roles: ['admin', 'quality'] },
       { label: 'Workstations', path: '/admin/machines', roles: ['admin', 'quality'] },
       { label: 'Gauges', path: '/admin/gauges', roles: ['admin', 'quality'] },
       { label: 'Production', path: '/admin/production', roles: ['admin', 'quality'] },

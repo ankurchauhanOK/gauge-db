@@ -8,6 +8,11 @@ import type {
   InspectionResult,
   User,
   Gauge,
+  ComponentDetail,
+  Measurement,
+  ManufacturingStep,
+  ComponentDocument,
+  ComponentRevision,
 } from '../../../shared/types';
 
 const now = new Date();
@@ -43,6 +48,116 @@ export const mockMachines: Machine[] = [
   { id: 4, machine_code: 'PROD-01', name: 'CNC Lathe 01', ip_address: '192.168.1.10', machine_type: 'production', status: 'running' },
 ];
 
+// ============ Component-Centric Detail Data ============
+const bushingMeasurements: Measurement[] = [
+  { id: 1, component_id: 1, name: 'Outer Diameter', nominal: 20.000, min_limit: 19.995, max_limit: 20.005, unit: 'mm', gauge_id: 1, sort_order: 1 },
+  { id: 2, component_id: 1, name: 'Length', nominal: 30.000, min_limit: 29.990, max_limit: 30.010, unit: 'mm', gauge_id: 1, sort_order: 2 },
+  { id: 3, component_id: 1, name: 'Inner Diameter', nominal: 10.000, min_limit: 9.995, max_limit: 10.005, unit: 'mm', gauge_id: 1, sort_order: 3 },
+  { id: 4, component_id: 1, name: 'Outer Diameter (Final)', nominal: 20.000, min_limit: 19.995, max_limit: 20.005, unit: 'mm', gauge_id: 1, sort_order: 4 },
+  { id: 5, component_id: 1, name: 'Surface Roughness', nominal: 0.800, min_limit: 0.000, max_limit: 1.600, unit: 'μm', gauge_id: 2, sort_order: 5 },
+];
+
+const pistonMeasurements: Measurement[] = [
+  { id: 6, component_id: 2, name: 'Outer Diameter', nominal: 50.000, min_limit: 49.990, max_limit: 50.010, unit: 'mm', gauge_id: 1, sort_order: 1 },
+  { id: 7, component_id: 2, name: 'Surface Roughness', nominal: 0.800, min_limit: 0.000, max_limit: 1.600, unit: 'μm', gauge_id: 2, sort_order: 2 },
+];
+
+const bushingSteps: ManufacturingStep[] = [
+  {
+    id: 1, component_id: 1, machine_id: 4, step_order: 1,
+    operations: [
+      { id: 1, name: 'Rough Turning', order: 1, measurement_ids: [1] },
+      { id: 2, name: 'Facing', order: 2, measurement_ids: [2] },
+    ],
+  },
+  {
+    id: 2, component_id: 1, machine_id: 1, step_order: 2,
+    operations: [
+      { id: 3, name: 'Dimensional Check', order: 3, measurement_ids: [3, 4] },
+      { id: 4, name: 'Surface Inspection', order: 4, measurement_ids: [5] },
+    ],
+  },
+  {
+    id: 3, component_id: 1, machine_id: 3, step_order: 3,
+    operations: [
+      { id: 5, name: 'QR Marking', order: 5, measurement_ids: [] },
+    ],
+  },
+];
+
+const pistonSteps: ManufacturingStep[] = [
+  {
+    id: 4, component_id: 2, machine_id: 4, step_order: 1,
+    operations: [
+      { id: 6, name: 'Outer Diameter Turning', order: 1, measurement_ids: [6] },
+    ],
+  },
+  {
+    id: 5, component_id: 2, machine_id: 2, step_order: 2,
+    operations: [
+      { id: 7, name: 'Surface Inspection', order: 2, measurement_ids: [7] },
+    ],
+  },
+];
+
+const bushingDocs: ComponentDocument[] = [
+  { id: 1, component_id: 1, name: 'BUSH-001 Drawing.pdf', type: 'drawing', file_url: null, uploaded_at: '2026-01-10T10:00:00Z' },
+  { id: 2, component_id: 1, name: 'Bushing SOP.docx', type: 'sop', file_url: null, uploaded_at: '2026-01-12T14:30:00Z' },
+  { id: 3, component_id: 1, name: 'Control Plan Rev 2.pdf', type: 'control_plan', file_url: null, uploaded_at: '2026-02-01T09:00:00Z' },
+];
+
+const bushingRevisions: ComponentRevision[] = [
+  { revision: 1, description: 'Initial release', created_at: '2025-06-01T08:00:00Z', created_by: 'System Administrator' },
+  { revision: 2, description: 'Updated outer diameter tolerance from ±0.010 to ±0.005', created_at: '2026-01-15T11:00:00Z', created_by: 'System Administrator' },
+];
+
+const pistonDocs: ComponentDocument[] = [
+  { id: 4, component_id: 2, name: 'PISTON-001 CAD.stp', type: 'cad', file_url: null, uploaded_at: '2026-03-01T10:00:00Z' },
+];
+
+const pistonRevisions: ComponentRevision[] = [
+  { revision: 1, description: 'Initial release', created_at: '2026-03-01T08:00:00Z', created_by: 'System Administrator' },
+];
+
+export const mockComponentDetails: Record<number, ComponentDetail> = {
+  1: {
+    component: mockComponents[0],
+    measurements: bushingMeasurements,
+    flow_steps: bushingSteps,
+    documents: bushingDocs,
+    revisions: bushingRevisions,
+  },
+  2: {
+    component: mockComponents[1],
+    measurements: pistonMeasurements,
+    flow_steps: pistonSteps,
+    documents: pistonDocs,
+    revisions: pistonRevisions,
+  },
+  3: {
+    component: mockComponents[2],
+    measurements: [],
+    flow_steps: [],
+    documents: [],
+    revisions: [],
+  },
+  4: {
+    component: mockComponents[3],
+    measurements: [],
+    flow_steps: [],
+    documents: [],
+    revisions: [],
+  },
+  5: {
+    component: mockComponents[4],
+    measurements: [],
+    flow_steps: [],
+    documents: [],
+    revisions: [],
+  },
+};
+
+// ============ Old Plan Data (kept for migration - will remove later) ============
 export const mockPlans: InspectionPlan[] = [
   {
     id: 1, name: 'Bushing Precision Line', component_id: 1, revision: 2, is_active: true, created_at: now.toISOString(),
@@ -117,7 +232,6 @@ let recordIdCounter = 10;
 export function createMockRecord(componentId: number, machineId: number, operatorName: string): ProductionRecord {
   recordIdCounter++;
   const comp = mockComponents.find(c => c.id === componentId)!;
-  const plan = mockPlans.find(p => p.component_id === componentId)!;
   return {
     id: recordIdCounter,
     serial_number: generateSerial(),

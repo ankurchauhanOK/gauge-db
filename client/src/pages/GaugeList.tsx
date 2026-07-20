@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getGauges, createGauge, updateGauge, deleteGauge, getPlans } from '../data/service';
+import { getGauges, createGauge, updateGauge, deleteGauge, getGaugeAssignments } from '../data/service';
 import type { Gauge } from '../../../shared/types';
-import type { InspectionPlan } from '../../../shared/types';
 import PageHeader from '../components/shared/PageHeader';
 import Modal from '../components/common/Modal';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -40,27 +39,9 @@ function formatDate(d: string | null): string {
 function useAssignedComponents(gaugeId: number): string[] {
   const [parts, setParts] = useState<string[]>([]);
   useEffect(() => {
-    getPlans().then((plans: InspectionPlan[]) => {
-      const compIds = new Set<number>();
-      for (const plan of plans) {
-        for (const step of plan.flow_steps) {
-          for (const op of step.operations) {
-            for (const dim of op.dimensions) {
-              if (dim.gauge_id === gaugeId) compIds.add(plan.component_id);
-            }
-          }
-        }
-      }
-      const names: string[] = [];
-      for (const pid of compIds) {
-        const plan = plans.find(p => p.component_id === pid);
-        if (plan) {
-          const comp = plan.name;
-          names.push(comp);
-        }
-      }
-      setParts(names.length ? names : []);
-    });
+    const assignments = getGaugeAssignments();
+    const found = assignments.find(a => a.gaugeId === gaugeId);
+    setParts(found?.componentPartCodes || []);
   }, [gaugeId]);
   return parts;
 }

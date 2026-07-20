@@ -37,7 +37,59 @@ export interface ComponentCreate {
   customer: string;
 }
 
-// ============ Inspection Plans ============
+// ============ Component-Centric Types (replaces InspectionPlan) ============
+export interface Measurement {
+  id: number;
+  component_id: number;
+  name: string;
+  nominal: number;
+  min_limit: number;
+  max_limit: number;
+  unit: string;
+  gauge_id: number | null;
+  sort_order: number;
+}
+
+export interface ManufacturingStep {
+  id: number;
+  component_id: number;
+  machine_id: number;
+  step_order: number;
+  operations: ManufacturingOperation[];
+}
+
+export interface ManufacturingOperation {
+  id: number;
+  name: string;
+  order: number;
+  measurement_ids: number[];
+}
+
+export interface ComponentDocument {
+  id: number;
+  component_id: number;
+  name: string;
+  type: 'drawing' | 'sop' | 'cad' | 'control_plan' | 'other';
+  file_url: string | null;
+  uploaded_at: string;
+}
+
+export interface ComponentRevision {
+  revision: number;
+  description: string;
+  created_at: string;
+  created_by: string;
+}
+
+export interface ComponentDetail {
+  component: Component;
+  measurements: Measurement[];
+  flow_steps: ManufacturingStep[];
+  documents: ComponentDocument[];
+  revisions: ComponentRevision[];
+}
+
+// ============ Inspection Plans (deprecated, kept for migration) ============
 export interface InspectionPlan {
   id: number;
   name: string;

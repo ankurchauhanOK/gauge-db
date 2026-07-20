@@ -7,7 +7,7 @@ import InspectComponent from './pages/InspectComponent';
 import OperatorSearch from './pages/OperatorSearch';
 import AdminDashboard from './pages/AdminDashboard';
 import ComponentList from './pages/ComponentList';
-import PlanBuilder from './pages/PlanBuilder';
+import ComponentDetail from './pages/ComponentDetail';
 import MachineList from './pages/MachineList';
 import GaugeList from './pages/GaugeList';
 import UserList from './pages/UserList';
@@ -99,7 +99,7 @@ export default function App() {
                     <Routes>
                       <Route path="dashboard" element={<AdminDashboard />} />
                       <Route path="components" element={<ComponentList />} />
-                      <Route path="plans" element={<PlanBuilder />} />
+                      <Route path="components/:id" element={<ComponentDetail />} />
                       <Route path="machines" element={<MachineList />} />
                       <Route path="gauges" element={<GaugeList />} />
                       <Route path="users" element={<UserList />} />

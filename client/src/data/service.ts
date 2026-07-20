@@ -603,6 +603,12 @@ export async function updateGauge(id: number, data: Partial<Gauge>) {
   return mockGauges[idx];
 }
 
+export async function deleteGauge(id: number) {
+  await delay(200);
+  const idx = mockGauges.findIndex(g => g.id === id);
+  if (idx > -1) mockGauges.splice(idx, 1);
+}
+
 // ============ Users CRUD ============
 let userIdCounter = 10;
 

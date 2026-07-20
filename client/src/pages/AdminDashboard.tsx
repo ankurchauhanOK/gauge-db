@@ -29,7 +29,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div>
+    <div className="max-w-[1440px] mx-auto px-10">
       <div className="mb-10">
         <p className="font-heading font-semibold text-small text-text-secondary tracking-wide uppercase mb-1">
           Overview

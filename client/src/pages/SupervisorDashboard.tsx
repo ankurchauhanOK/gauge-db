@@ -29,7 +29,7 @@ export default function SupervisorDashboard() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="max-w-[1440px] mx-auto px-10 space-y-6">
       <h1 className="text-2xl font-bold text-white">Supervisor Dashboard</h1>
 
       <div className="grid grid-cols-6 gap-4">

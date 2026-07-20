@@ -225,8 +225,21 @@ export async function getDashboard() {
   await delay(400);
   const pending = inspectionRecords.filter(r => r.status === 'pending').length;
   const rejected = inspectionRecords.filter(r => r.status === 'rejected').length;
+  const allOps = inspectionRecords.length;
+  const recentProduction = allProductionRecords.slice(0, 6).map(r => ({
+    serial: r.serial,
+    part: r.part,
+    status: r.status,
+    time: r.started.split(' ')[1] || r.started,
+    operator: r.operator,
+  }));
+  const alerts: { type: string; message: string; time: string }[] = [];
+  const idleMachines = operatorDashboardMock.machineStatus.filter(m => m.status !== 'running');
+  idleMachines.forEach(m => {
+    alerts.push({ type: 'info', message: `${m.name} is ${m.status}`, time: 'now' });
+  });
   return {
-    todayProduction: operatorDashboardMock.todayProduction + inspectionRecords.filter(r => r.status !== 'pending').length,
+    todayProduction: operatorDashboardMock.todayProduction + allOps,
     accepted: operatorDashboardMock.accepted + inspectionRecords.filter(r => r.status === 'accepted').length,
     rejected: operatorDashboardMock.rejected + rejected,
     target: operatorDashboardMock.target,
@@ -234,6 +247,8 @@ export async function getDashboard() {
     machineStatus: operatorDashboardMock.machineStatus,
     shift: getCurrentShift(),
     pending,
+    recentProduction,
+    alerts,
   };
 }
 

@@ -47,27 +47,27 @@ export default function OperatorDashboard() {
 
   return (
     <div className="max-w-[1440px] mx-auto px-10">
-      <div className="flex items-center justify-between mb-12">
+      <div className="flex items-center justify-between mb-6">
         <h1 className="font-heading font-semibold text-title text-text-primary">
           Production Dashboard
         </h1>
-        <div className="flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border-light rounded-full px-4 py-2">
+        <div className="flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border-light rounded-full px-4 py-1.5">
           <span className="w-2 h-2 rounded-full bg-status-pass" />
           <span className="font-body text-small font-medium text-text-secondary">{data?.shift}</span>
         </div>
       </div>
 
-      <div className="mb-8">
-        <div className="flex items-baseline gap-2 mb-1">
-          <span className="font-heading font-bold text-hero text-text-primary leading-none">
+      <div className="mb-5">
+        <div className="flex items-baseline gap-2 mb-0.5">
+          <span className="font-heading font-bold text-[2.5rem] text-text-primary leading-none">
             {data?.todayProduction ?? 0}
           </span>
           <span className="font-heading font-semibold text-section text-text-secondary/40">
             / {data?.target ?? 1}
           </span>
         </div>
-        <p className="font-body text-body text-text-secondary mb-4">Today's Production</p>
-        <div className="w-full max-w-md h-1.5 bg-neutral-200/60 rounded-full overflow-hidden">
+        <p className="font-body text-small text-text-secondary mb-2.5">Today's Production</p>
+        <div className="w-full max-w-md h-1 bg-neutral-200/60 rounded-full overflow-hidden">
           <motion.div
             className="h-full bg-text-primary rounded-full"
             initial={{ width: 0 }}
@@ -77,40 +77,40 @@ export default function OperatorDashboard() {
         </div>
       </div>
 
-      <div className="h-px bg-border-light mb-10" />
+      <div className="h-px bg-border-light mb-6" />
 
-      <div className="grid grid-cols-5 gap-8 mb-10">
+      <div className="grid grid-cols-5 gap-6 mb-6">
         <div>
-          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-1.5">Accepted</p>
-          <p className="font-heading font-bold text-display text-status-pass">{data?.accepted ?? 0}</p>
+          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-0.5">Accepted</p>
+          <p className="font-heading font-bold text-[1.75rem] text-status-pass">{data?.accepted ?? 0}</p>
         </div>
         <div>
-          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-1.5">Rejected</p>
-          <p className="font-heading font-bold text-display text-status-fail">{data?.rejected ?? 0}</p>
+          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-0.5">Rejected</p>
+          <p className="font-heading font-bold text-[1.75rem] text-status-fail">{data?.rejected ?? 0}</p>
         </div>
         <div>
-          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-1.5">Pending</p>
-          <p className="font-heading font-bold text-display text-status-warning">{data?.pending ?? 0}</p>
+          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-0.5">Pending</p>
+          <p className="font-heading font-bold text-[1.75rem] text-status-warning">{data?.pending ?? 0}</p>
         </div>
         <div>
-          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-1.5">Quality</p>
-          <p className="font-heading font-bold text-display text-text-primary">{data?.qualityPercentage ?? 0}%</p>
+          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-0.5">Quality</p>
+          <p className="font-heading font-bold text-[1.75rem] text-text-primary">{data?.qualityPercentage ?? 0}%</p>
         </div>
         <div>
-          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-1.5">Machines</p>
-          <p className="font-heading font-bold text-display text-text-primary">{activeMachines}/{totalMachines}</p>
+          <p className="font-body text-tiny font-medium text-text-secondary tracking-wide uppercase mb-0.5">Machines</p>
+          <p className="font-heading font-bold text-[1.75rem] text-text-primary">{activeMachines}/{totalMachines}</p>
         </div>
       </div>
 
-      <div className="h-px bg-border-light mb-10" />
+      <div className="h-px bg-border-light mb-6" />
 
-      <div className="grid grid-cols-12 gap-8">
+      <div className="grid grid-cols-12 gap-6">
         <div className="col-span-5">
-          <p className="font-heading font-semibold text-section text-text-primary mb-5">Machines</p>
-          <div className="space-y-3 mb-8">
+          <p className="font-heading font-semibold text-card-title text-text-primary mb-3">Machines</p>
+          <div className="space-y-2 mb-5">
             {data?.machineStatus.map((m) => (
               <div key={m.id} className="flex items-center gap-3 px-1">
-                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${statusColor[m.status] || 'bg-neutral-300'}`} />
+                <span className={`w-2 h-2 rounded-full shrink-0 ${statusColor[m.status] || 'bg-neutral-300'}`} />
                 <div className="flex-1 flex items-center justify-between">
                   <span className="font-body text-body font-medium text-text-primary">{m.name}</span>
                   <span className="font-body text-small font-medium text-text-secondary capitalize">{m.status}</span>
@@ -120,33 +120,31 @@ export default function OperatorDashboard() {
           </div>
           <button
             onClick={() => navigate('/operator/inspect')}
-            className="w-full bg-text-primary hover:bg-neutral-800 text-white font-heading font-semibold text-body h-12 rounded-2xl transition-all duration-apple ease-apple active:scale-[0.98]"
+            className="w-full bg-text-primary hover:bg-neutral-800 text-white font-heading font-semibold text-body h-10 rounded-2xl transition-all duration-apple ease-apple active:scale-[0.98]"
           >
             Inspect Component
           </button>
         </div>
 
         <div className="col-span-7">
-          <div className="flex items-center justify-between mb-5">
-            <p className="font-heading font-semibold text-section text-text-primary">Recent Production</p>
-          </div>
+          <p className="font-heading font-semibold text-card-title text-text-primary mb-3">Recent Production</p>
           <div className="bg-surface rounded-2xl border border-border-light overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border-light">
-                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-5 py-3.5">Serial</th>
-                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-5 py-3.5">Part</th>
-                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-5 py-3.5">Status</th>
-                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-5 py-3.5">Time</th>
-                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-5 py-3.5">Operator</th>
+                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-4 py-2.5">Serial</th>
+                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-4 py-2.5">Part</th>
+                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-4 py-2.5">Status</th>
+                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-4 py-2.5">Time</th>
+                  <th className="text-left font-body text-tiny font-medium text-text-secondary uppercase tracking-wide px-4 py-2.5">Operator</th>
                 </tr>
               </thead>
               <tbody>
                 {data?.recentProduction.map((r, i) => (
                   <tr key={i} className="border-b border-border-light last:border-0">
-                    <td className="font-body text-small font-mono font-medium text-text-primary px-5 py-3.5">{r.serial}</td>
-                    <td className="font-body text-small text-text-primary px-5 py-3.5">{r.part}</td>
-                    <td className="px-5 py-3.5">
+                    <td className="font-body text-small font-mono font-medium text-text-primary px-4 py-2.5">{r.serial}</td>
+                    <td className="font-body text-small text-text-primary px-4 py-2.5">{r.part}</td>
+                    <td className="px-4 py-2.5">
                       <span className={`inline-flex items-center gap-1.5 font-body text-tiny font-semibold ${
                         r.status === 'accepted' ? 'text-status-pass' :
                         r.status === 'rejected' ? 'text-status-fail' :
@@ -160,13 +158,13 @@ export default function OperatorDashboard() {
                         {statusLabel[r.status] || r.status}
                       </span>
                     </td>
-                    <td className="font-body text-small text-text-secondary px-5 py-3.5">{r.time}</td>
-                    <td className="font-body text-small text-text-primary px-5 py-3.5">{r.operator}</td>
+                    <td className="font-body text-small text-text-secondary px-4 py-2.5">{r.time}</td>
+                    <td className="font-body text-small text-text-primary px-4 py-2.5">{r.operator}</td>
                   </tr>
                 ))}
                 {(!data?.recentProduction || data.recentProduction.length === 0) && (
                   <tr>
-                    <td colSpan={5} className="text-center font-body text-small text-text-secondary/60 px-5 py-8">
+                    <td colSpan={5} className="text-center font-body text-small text-text-secondary/60 px-5 py-6">
                       No production records yet
                     </td>
                   </tr>

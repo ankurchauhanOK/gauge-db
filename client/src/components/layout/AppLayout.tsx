@@ -20,7 +20,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#F6F6F4] flex">
+    <div className="h-screen bg-[#F6F6F4] flex">
       <NavRail
         sections={sections}
         activeSection={activeSection}
@@ -40,7 +40,7 @@ export default function AppLayout({ children }: { children: ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="p-10"
+            className="pt-10 px-12 pb-6"
           >
             {children}
           </motion.div>

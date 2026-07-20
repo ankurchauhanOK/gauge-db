@@ -1,15 +1,15 @@
 import type {
   ProductionRecord,
   InspectionPlan,
-  FlowStep,
-  Operation,
-  Dimension,
   InspectionResult,
   Component,
   Machine,
   Gauge,
   User,
   UserRole,
+  Dimension,
+  FlowStep,
+  Operation,
 } from '../../../shared/types';
 import {
   mockComponents,
@@ -28,112 +28,303 @@ import {
 
 const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
 
-let activeRecord: ProductionRecord | null = null;
-let activePlan: InspectionPlan | null = null;
-let currentOpIndex = 0;
-let completedResults: InspectionResult[] = [];
-let serialCounter = 0;
+let inspectionCounter = 0;
+let inspectionRecords: {
+  id: number;
+  component_id: number;
+  part_code: string;
+  serial_number: string;
+  machine_id: number;
+  operator_name: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  rejection_reason: string | null;
+  parameters: FlatParameter[];
+  measurements: FlatMeasurement[];
+  started_at: string;
+  completed_at: string | null;
+}[] = [];
 
-export function resetInspection() {
-  activeRecord = null;
-  activePlan = null;
-  currentOpIndex = 0;
-  completedResults = [];
+export interface FlatParameter {
+  id: number;
+  name: string;
+  nominal: number;
+  min_limit: number;
+  max_limit: number;
+  unit: string;
+  sort_order: number;
 }
+
+export interface FlatMeasurement {
+  parameter_id: number;
+  parameter_name: string;
+  measured_value: number;
+  nominal: number;
+  min_limit: number;
+  max_limit: number;
+  unit: string;
+  result: 'PASS' | 'FAIL';
+  measured_at: string;
+}
+
+export interface InspectionRecord {
+  id: number;
+  component_id: number;
+  part_code: string;
+  serial_number: string;
+  machine_id: number;
+  operator_name: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  rejection_reason: string | null;
+  parameters: FlatParameter[];
+  measurements: FlatMeasurement[];
+  started_at: string;
+  completed_at: string | null;
+}
+
+// ============ Flatten dimensions from plan into a flat parameter list ============
+function flattenParameters(plan: InspectionPlan): FlatParameter[] {
+  let order = 0;
+  const params: FlatParameter[] = [];
+  const seen = new Set<number>();
+  for (const step of plan.flow_steps) {
+    for (const op of step.operations) {
+      for (const dim of op.dimensions) {
+        if (!seen.has(dim.id)) {
+          seen.add(dim.id);
+          order++;
+          params.push({
+            id: dim.id,
+            name: dim.dimension_name,
+            nominal: dim.nominal,
+            min_limit: dim.min_limit,
+            max_limit: dim.max_limit,
+            unit: dim.unit,
+            sort_order: order,
+          });
+        }
+      }
+    }
+  }
+  return params;
+}
+
+// ============ Get flat parameters for a component ============
+export function getFlatParameters(componentId: number): FlatParameter[] {
+  const plan = mockPlans.find(p => p.component_id === componentId);
+  if (!plan) return [];
+  return flattenParameters(plan);
+}
+
+// ============ Start a new inspection ============
+export async function startInspection(
+  componentId: number,
+  machineId: number,
+  operatorName: string,
+): Promise<InspectionRecord> {
+  await delay(600);
+  inspectionCounter++;
+  const comp = mockComponents.find(c => c.id === componentId)!;
+  const serial = generateSerial();
+  const plan = mockPlans.find(p => p.component_id === componentId);
+  const parameters = plan ? flattenParameters(plan) : [];
+
+  const record: InspectionRecord = {
+    id: Date.now() + inspectionCounter,
+    component_id: componentId,
+    part_code: comp.part_code,
+    serial_number: serial,
+    machine_id: machineId,
+    operator_name: operatorName,
+    status: 'pending',
+    rejection_reason: null,
+    parameters,
+    measurements: [],
+    started_at: new Date().toISOString(),
+    completed_at: null,
+  };
+
+  inspectionRecords.push(record);
+  return record;
+}
+
+// ============ Record a measurement for an active inspection ============
+export async function recordMeasurement(
+  recordId: number,
+  param: FlatParameter,
+  measuredValue: number,
+): Promise<{ measurement: FlatMeasurement; record: InspectionRecord; isComplete: boolean }> {
+  await delay(200);
+  const record = inspectionRecords.find(r => r.id === recordId);
+  if (!record) throw new Error('Inspection record not found');
+
+  const passed = measuredValue >= param.min_limit && measuredValue <= param.max_limit;
+
+  const measurement: FlatMeasurement = {
+    parameter_id: param.id,
+    parameter_name: param.name,
+    measured_value: measuredValue,
+    nominal: param.nominal,
+    min_limit: param.min_limit,
+    max_limit: param.max_limit,
+    unit: param.unit,
+    result: passed ? 'PASS' : 'FAIL',
+    measured_at: new Date().toISOString(),
+  };
+
+  record.measurements.push(measurement);
+
+  if (!passed) {
+    record.status = 'rejected';
+    record.rejection_reason = `${param.name} out of tolerance`;
+    record.completed_at = new Date().toISOString();
+    return { measurement, record, isComplete: true };
+  }
+
+  const allParamIds = param.sort_order;
+  const measuredCount = record.measurements.length;
+  const totalCount = record.parameters.length;
+
+  if (measuredCount >= totalCount) {
+    record.status = 'accepted';
+    record.completed_at = new Date().toISOString();
+    return { measurement, record, isComplete: true };
+  }
+
+  return { measurement, record, isComplete: false };
+}
+
+// ============ Get pending inspections ============
+export async function getPendingInspections(): Promise<InspectionRecord[]> {
+  await delay(200);
+  return inspectionRecords.filter(r => r.status === 'pending');
+}
+
+// ============ Get inspection record by serial ============
+export async function getInspectionBySerial(serial: string): Promise<InspectionRecord | null> {
+  await delay(200);
+  return inspectionRecords.find(r => r.serial_number === serial) || null;
+}
+
+// ============ Get all completed inspection records ============
+export async function getAllInspectionRecords(): Promise<InspectionRecord[]> {
+  await delay(200);
+  return [...inspectionRecords];
+}
+
+// ============ Reset (for testing) ============
+export function resetInspections() {
+  inspectionRecords = [];
+  inspectionCounter = 0;
+}
+
+// ============ Existing functions kept as-is ============
+
+export function resetInspection() {}
 
 export async function getDashboard() {
   await delay(400);
+  const pending = inspectionRecords.filter(r => r.status === 'pending').length;
+  const rejected = inspectionRecords.filter(r => r.status === 'rejected').length;
   return {
-    todayProduction: operatorDashboardMock.todayProduction,
-    accepted: operatorDashboardMock.accepted,
-    rejected: operatorDashboardMock.rejected,
+    todayProduction: operatorDashboardMock.todayProduction + inspectionRecords.filter(r => r.status !== 'pending').length,
+    accepted: operatorDashboardMock.accepted + inspectionRecords.filter(r => r.status === 'accepted').length,
+    rejected: operatorDashboardMock.rejected + rejected,
     target: operatorDashboardMock.target,
     qualityPercentage: operatorDashboardMock.qualityPercentage,
     machineStatus: operatorDashboardMock.machineStatus,
     shift: getCurrentShift(),
+    pending,
   };
 }
 
 export async function startProcess(componentId: number, machineId: number, operatorName: string) {
   await delay(800);
-  serialCounter++;
-  const serial = `SB${new Date().toISOString().slice(2, 10).replace(/-/g, '')}${String(serialCounter).padStart(4, '0')}`;
-  const comp = mockComponents.find(c => c.id === componentId)!;
-  const machine = mockMachines.find(m => m.id === machineId)!;
-  const plan = mockPlans.find(p => p.component_id === componentId)!;
-
-  activeRecord = {
-    id: Date.now(),
-    serial_number: serial,
-    component_id: componentId,
-    part_code: comp.part_code,
-    machine_id: machineId,
-    operator_id: 1,
-    status: 'in_progress',
-    current_operation: 1,
-    rejection_reason: null,
-    started_at: new Date().toISOString(),
-    completed_at: null,
-  };
-
-  activePlan = plan;
-  currentOpIndex = 0;
-  completedResults = [];
-
+  const insp = await startInspection(componentId, machineId, operatorName);
   return {
-    record: activeRecord,
-    component: comp,
-    machine: machine,
-    plan: plan,
-    currentOperation: plan.operations[0],
+    record: {
+      id: insp.id,
+      serial_number: insp.serial_number,
+      component_id: insp.component_id,
+      part_code: insp.part_code,
+      machine_id: insp.machine_id,
+      operator_id: 1,
+      status: 'in_progress',
+      current_operation: 1,
+      rejection_reason: null,
+      started_at: insp.started_at,
+      completed_at: null,
+    } as ProductionRecord,
+    component: mockComponents.find(c => c.id === componentId)!,
+    machine: mockMachines.find(m => m.id === machineId)!,
+    plan: mockPlans.find(p => p.component_id === componentId),
+    currentOperation: null,
   };
 }
 
 export async function getInspectionData(serial: string) {
   await delay(300);
-  if (!activeRecord || !activePlan) throw new Error('No active inspection');
-  const currentOp = activePlan.operations[currentOpIndex];
+  const record = inspectionRecords.find(r => r.serial_number === serial);
+  if (!record) throw new Error('No active inspection');
   return {
-    record: activeRecord,
-    component: mockComponents.find(c => c.id === activeRecord!.component_id)!,
-    machine: mockMachines.find(m => m.id === activeRecord!.machine_id)!,
-    currentOperation: currentOp,
-    operationIndex: currentOpIndex,
-    totalOperations: activePlan.operations.length,
-    completedResults,
-    status: activeRecord.status,
+    record: {
+      id: record.id,
+      serial_number: record.serial_number,
+      component_id: record.component_id,
+      part_code: record.part_code,
+      machine_id: record.machine_id,
+      operator_id: 1,
+      status: record.status === 'pending' ? 'in_progress' : record.status,
+      current_operation: 1,
+      rejection_reason: record.rejection_reason,
+      started_at: record.started_at,
+      completed_at: record.completed_at,
+    } as ProductionRecord,
+    component: mockComponents.find(c => c.id === record.component_id)!,
+    machine: mockMachines.find(m => m.id === record.machine_id)!,
+    currentOperation: null,
+    operationIndex: 0,
+    totalOperations: record.parameters.length,
+    completedResults: record.measurements.map((m, i) => ({
+      id: i + 1,
+      production_record_id: record.id,
+      dimension_id: m.parameter_id,
+      operation_id: 1,
+      measured_value: m.measured_value,
+      nominal: m.nominal,
+      min_limit: m.min_limit,
+      max_limit: m.max_limit,
+      result: m.result,
+      gauge_id: null,
+      measured_at: m.measured_at,
+    })) as InspectionResult[],
+    status: record.status,
   };
 }
 
 export async function submitMeasurement(
   dimension: Dimension,
   measuredValue: number,
-): Promise<{ result: InspectionResult; nextOperation: Operation | null; isComplete: boolean; finalStatus: string }> {
+) {
   await delay(400);
-  if (!activeRecord || !activePlan) throw new Error('No active inspection');
-
-  const currentOp = activePlan.operations[currentOpIndex];
   const passed = measuredValue >= dimension.min_limit && measuredValue <= dimension.max_limit;
-  const result = createMockResult(activeRecord.id, dimension, currentOp.id, measuredValue, passed ? 'PASS' : 'FAIL');
-  completedResults.push(result);
-
-  if (!passed) {
-    activeRecord.status = 'rejected';
-    activeRecord.rejection_reason = `${dimension.dimension_name} Out of Tolerance`;
-    activeRecord.completed_at = new Date().toISOString();
-    return { result, nextOperation: null, isComplete: true, finalStatus: 'rejected' };
-  }
-
-  currentOpIndex++;
-  if (currentOpIndex >= activePlan.operations.length) {
-    activeRecord.status = 'accepted';
-    activeRecord.completed_at = new Date().toISOString();
-    return { result, nextOperation: null, isComplete: true, finalStatus: 'accepted' };
-  }
-
-  const nextOp = activePlan.operations[currentOpIndex];
-  activeRecord.current_operation = currentOpIndex + 1;
-  return { result, nextOperation: nextOp, isComplete: false, finalStatus: 'in_progress' };
+  return {
+    result: {
+      id: Date.now(),
+      production_record_id: 0,
+      dimension_id: dimension.id,
+      operation_id: 1,
+      measured_value: measuredValue,
+      nominal: dimension.nominal,
+      min_limit: dimension.min_limit,
+      max_limit: dimension.max_limit,
+      result: passed ? 'PASS' : 'FAIL',
+      gauge_id: null,
+      measured_at: new Date().toISOString(),
+    } as InspectionResult,
+    nextOperation: null,
+    isComplete: true,
+    finalStatus: passed ? 'accepted' : 'rejected',
+  };
 }
 
 export async function getOperatorSearch(query: string) {
@@ -238,7 +429,6 @@ export async function deletePlan(id: number) {
   if (idx > -1) mockPlans.splice(idx, 1);
 }
 
-// ============ Flow Steps (Machine + Operations) ============
 export async function addFlowStep(planId: number, machineId: number) {
   await delay(300);
   const plan = mockPlans.find(p => p.id === planId);
@@ -278,7 +468,6 @@ export async function moveFlowStep(planId: number, flowStepId: number, direction
   plan.flow_steps.forEach((s, i) => { s.step_order = i + 1; });
 }
 
-// Operations live inside flow steps
 function findOperation(opId: number): { step: FlowStep; op: Operation } | null {
   for (const plan of mockPlans) {
     for (const step of plan.flow_steps) {
@@ -538,7 +727,7 @@ let settings = {
   company: { name: 'AutoParts Ltd', address: 'Plot 42, Industrial Area', city: 'Pune', country: 'India', phone: '+91-20-12345678' },
   backup: { auto_backup: true, backup_time: '02:00', retention_days: 30 },
   serial_format: { prefix: 'SB', include_date: true, digits: 4 },
-  qr: { format: 'QR_CODE', content: 'COMPANY\\nPART_CODE\\nSERIAL_NO', size: '20x20mm' },
+  qr: { format: 'QR_CODE', content: 'COMPANY\nPART_CODE\nSERIAL_NO', size: '20x20mm' },
   shift: { morning: '06:00-14:00', afternoon: '14:00-22:00', night: '22:00-06:00' },
 };
 

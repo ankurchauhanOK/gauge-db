@@ -28,8 +28,8 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'Start Process',
-    path: '/operator/start',
+    label: 'Inspect Component',
+    path: '/operator/inspect',
     roles: ['operator'],
     icon: (
       <svg className={iconClasses} viewBox="0 0 24 24" {...strokeProps} stroke="currentColor">

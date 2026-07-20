@@ -9,6 +9,7 @@ export default function OperatorDashboard() {
   type DashboardData = {
     todayProduction: number; accepted: number; rejected: number;
     target: number; qualityPercentage: number; shift: string;
+    pending: number;
     machineStatus: { id: number; name: string; status: string }[];
   };
   const [data, setData] = useState<DashboardData | null>(null);
@@ -76,10 +77,11 @@ export default function OperatorDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-5 mb-10">
+      <div className="grid grid-cols-5 gap-5 mb-10">
         <StatCard label="Accepted" value={data?.accepted ?? 0} color="text-status-pass" subtitle="Today" />
         <StatCard label="Rejected" value={data?.rejected ?? 0} color="text-status-fail" subtitle="Today" />
-        <StatCard label="Quality" value={`${data?.qualityPercentage ?? 0}%`} color="text-status-warning" subtitle="Today" />
+        <StatCard label="Pending" value={data?.pending ?? 0} color="text-status-warning" subtitle="Awaiting completion" />
+        <StatCard label="Quality" value={`${data?.qualityPercentage ?? 0}%`} color="text-status-info" subtitle="Today" />
         <StatCard label="Target Progress" value={`${Math.round(((data?.todayProduction ?? 0) / (data?.target ?? 1)) * 100)}%`} color="text-status-info" subtitle={`${data?.todayProduction ?? 0} of ${data?.target ?? 1}`} />
       </div>
 
@@ -109,10 +111,10 @@ export default function OperatorDashboard() {
       >
         <p className="font-body text-body text-text-secondary mb-8">Ready to start a new inspection</p>
         <button
-          onClick={() => navigate('/operator/start')}
+          onClick={() => navigate('/operator/inspect')}
           className="bg-text-primary hover:bg-neutral-800 text-white font-heading font-semibold text-section px-16 py-6 rounded-3xl transition-all duration-200 ease-apple shadow-card hover:shadow-card-hover active:scale-[0.98]"
         >
-          Start Process
+          Inspect Component
         </button>
       </motion.div>
     </div>

@@ -2,10 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './pages/Login';
 import AppLayout from './components/layout/AppLayout';
-import OperatorDashboard from './pages/OperatorDashboard';
+import WorkstationDashboard from './pages/WorkstationDashboard';
 import InspectComponent from './pages/InspectComponent';
 import OperatorSearch from './pages/OperatorSearch';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminWorkstations from './pages/AdminWorkstations';
 import ComponentList from './pages/ComponentList';
 import ComponentDetail from './pages/ComponentDetail';
 import MachineList from './pages/MachineList';
@@ -79,7 +80,7 @@ export default function App() {
                 <RoleRoute roles={['operator']}>
                   <AppLayout>
                     <Routes>
-                      <Route path="dashboard" element={<OperatorDashboard />} />
+                      <Route path="dashboard" element={<WorkstationDashboard />} />
                       <Route path="inspect" element={<InspectComponent />} />
                       <Route path="search" element={<OperatorSearch />} />
                       <Route path="*" element={<Navigate to="dashboard" replace />} />
@@ -98,6 +99,7 @@ export default function App() {
                   <AppLayout>
                     <Routes>
                       <Route path="dashboard" element={<AdminDashboard />} />
+                      <Route path="workstations" element={<AdminWorkstations />} />
                       <Route path="components" element={<ComponentList />} />
                       <Route path="components/:id" element={<ComponentDetail />} />
                       <Route path="machines" element={<MachineList />} />

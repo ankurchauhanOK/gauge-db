@@ -13,6 +13,8 @@ import type {
   ManufacturingStep,
   ComponentDocument,
   ComponentRevision,
+  Workstation,
+  QueueItem,
 } from '../../../shared/types';
 
 const now = new Date();
@@ -48,6 +50,16 @@ export const mockMachines: Machine[] = [
   { id: 4, machine_code: 'PROD-01', name: 'CNC Lathe 01', ip_address: '192.168.1.10', machine_type: 'production', status: 'running' },
 ];
 
+export const mockWorkstations: Workstation[] = [
+  { id: 1, name: 'CNC Lathe Station', machine_id: 4, gauge_ids: [1, 3], assigned_user_id: 2, component_type_id: 1, is_active: true },
+  { id: 2, name: 'Inspection Station 1', machine_id: 1, gauge_ids: [1, 2], assigned_user_id: 3, component_type_id: 1, is_active: true },
+  { id: 3, name: 'QR Marking Station', machine_id: 3, gauge_ids: [], assigned_user_id: null, component_type_id: 1, is_active: true },
+  { id: 4, name: 'Piston Machining Station', machine_id: 4, gauge_ids: [1, 3], assigned_user_id: null, component_type_id: 2, is_active: true },
+  { id: 5, name: 'Piston Inspection Station', machine_id: 2, gauge_ids: [2], assigned_user_id: null, component_type_id: 2, is_active: true },
+];
+
+export let mockQueue: QueueItem[] = [];
+
 // ============ Component-Centric Detail Data ============
 const bushingMeasurements: Measurement[] = [
   { id: 1, component_id: 1, name: 'Outer Diameter', nominal: 20.000, min_limit: 19.995, max_limit: 20.005, unit: 'mm', gauge_id: 1, sort_order: 1 },
@@ -66,21 +78,21 @@ const bushingSteps: ManufacturingStep[] = [
   {
     id: 1, component_id: 1, machine_id: 4, step_order: 1,
     operations: [
-      { id: 1, name: 'Rough Turning', order: 1, measurement_ids: [1] },
-      { id: 2, name: 'Facing', order: 2, measurement_ids: [2] },
+      { id: 1, name: 'Rough Turning', order: 1, measurement_ids: [1], workstation_id: 1, gauge_id: 1 },
+      { id: 2, name: 'Facing', order: 2, measurement_ids: [2], workstation_id: 1, gauge_id: null },
     ],
   },
   {
     id: 2, component_id: 1, machine_id: 1, step_order: 2,
     operations: [
-      { id: 3, name: 'Dimensional Check', order: 3, measurement_ids: [3, 4] },
-      { id: 4, name: 'Surface Inspection', order: 4, measurement_ids: [5] },
+      { id: 3, name: 'Dimensional Check', order: 3, measurement_ids: [3, 4], workstation_id: 2, gauge_id: 1 },
+      { id: 4, name: 'Surface Inspection', order: 4, measurement_ids: [5], workstation_id: 2, gauge_id: 2 },
     ],
   },
   {
     id: 3, component_id: 1, machine_id: 3, step_order: 3,
     operations: [
-      { id: 5, name: 'QR Marking', order: 5, measurement_ids: [] },
+      { id: 5, name: 'QR Marking', order: 5, measurement_ids: [], workstation_id: 3, gauge_id: null },
     ],
   },
 ];
@@ -89,13 +101,13 @@ const pistonSteps: ManufacturingStep[] = [
   {
     id: 4, component_id: 2, machine_id: 4, step_order: 1,
     operations: [
-      { id: 6, name: 'Outer Diameter Turning', order: 1, measurement_ids: [6] },
+      { id: 6, name: 'Outer Diameter Turning', order: 1, measurement_ids: [6], workstation_id: 4, gauge_id: 1 },
     ],
   },
   {
     id: 5, component_id: 2, machine_id: 2, step_order: 2,
     operations: [
-      { id: 7, name: 'Surface Inspection', order: 2, measurement_ids: [7] },
+      { id: 7, name: 'Surface Inspection', order: 2, measurement_ids: [7], workstation_id: 5, gauge_id: 2 },
     ],
   },
 ];
@@ -126,6 +138,7 @@ export const mockComponentDetails: Record<number, ComponentDetail> = {
     flow_steps: bushingSteps,
     documents: bushingDocs,
     revisions: bushingRevisions,
+    flow_published: true,
   },
   2: {
     component: mockComponents[1],
@@ -133,6 +146,7 @@ export const mockComponentDetails: Record<number, ComponentDetail> = {
     flow_steps: pistonSteps,
     documents: pistonDocs,
     revisions: pistonRevisions,
+    flow_published: true,
   },
   3: {
     component: mockComponents[2],
@@ -140,6 +154,7 @@ export const mockComponentDetails: Record<number, ComponentDetail> = {
     flow_steps: [],
     documents: [],
     revisions: [],
+    flow_published: false,
   },
   4: {
     component: mockComponents[3],
@@ -147,6 +162,7 @@ export const mockComponentDetails: Record<number, ComponentDetail> = {
     flow_steps: [],
     documents: [],
     revisions: [],
+    flow_published: false,
   },
   5: {
     component: mockComponents[4],
@@ -154,6 +170,7 @@ export const mockComponentDetails: Record<number, ComponentDetail> = {
     flow_steps: [],
     documents: [],
     revisions: [],
+    flow_published: false,
   },
 };
 

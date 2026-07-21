@@ -63,6 +63,8 @@ export interface ManufacturingOperation {
   name: string;
   order: number;
   measurement_ids: number[];
+  workstation_id: number | null;
+  gauge_id: number | null;
 }
 
 export interface ComponentDocument {
@@ -87,7 +89,38 @@ export interface ComponentDetail {
   flow_steps: ManufacturingStep[];
   documents: ComponentDocument[];
   revisions: ComponentRevision[];
+  flow_published: boolean;
 }
+
+export interface Workstation {
+  id: number;
+  name: string;
+  machine_id: number;
+  gauge_ids: number[];
+  assigned_user_id: number | null;
+  component_type_id: number;
+  is_active: boolean;
+}
+
+export type QueueItemStatus = 'waiting' | 'in_progress' | 'completed' | 'failed' | 'rework';
+
+export interface QueueItem {
+  id: number;
+  component_id: number;
+  component_serial: string;
+  component_part_code: string;
+  step_id: number;
+  operation_id: number;
+  operation_name: string;
+  workstation_id: number;
+  gauge_id: number | null;
+  status: QueueItemStatus;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+}
+
+export type FailAction = 'rework' | 'scrap' | 'skip';
 
 // ============ Inspection Plans (deprecated, kept for migration) ============
 export interface InspectionPlan {

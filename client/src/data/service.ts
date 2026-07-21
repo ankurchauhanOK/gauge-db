@@ -14,6 +14,9 @@ import type {
   Measurement,
   ManufacturingStep,
   ComponentRevision,
+  Workstation,
+  QueueItem,
+  FailAction,
 } from '../../../shared/types';
 import {
   mockComponents,
@@ -22,6 +25,8 @@ import {
   mockGauges,
   mockUsers,
   mockComponentDetails,
+  mockWorkstations,
+  mockQueue,
   operatorDashboardMock,
   adminDashboardMock,
   getCurrentShift,
@@ -892,4 +897,242 @@ export async function supervisorSearch(query: string) {
       { dim: 'Inner Diameter', nominal: '10.000', measured: '10.002', min: '9.995', max: '10.005', result: 'PASS' as const },
     ],
   }));
+}
+
+// ============ Workstations ============
+let wsIdCounter = 10;
+
+export async function getWorkstations(): Promise<Workstation[]> {
+  await delay(200);
+  return [...mockWorkstations];
+}
+
+export async function getWorkstation(id: number): Promise<Workstation | null> {
+  await delay(100);
+  return mockWorkstations.find(w => w.id === id) || null;
+}
+
+export async function saveWorkstation(data: Omit<Workstation, 'id'> & { id?: number }): Promise<Workstation> {
+  await delay(400);
+  if (data.id) {
+    const idx = mockWorkstations.findIndex(w => w.id === data.id);
+    if (idx === -1) throw new Error('Workstation not found');
+    Object.assign(mockWorkstations[idx], data);
+    return mockWorkstations[idx];
+  }
+  wsIdCounter++;
+  const ws: Workstation = { ...data, id: wsIdCounter, is_active: true };
+  mockWorkstations.push(ws);
+  return ws;
+}
+
+export async function deleteWorkstation(id: number): Promise<void> {
+  await delay(200);
+  const idx = mockWorkstations.findIndex(w => w.id === id);
+  if (idx > -1) mockWorkstations.splice(idx, 1);
+}
+
+export async function assignUserToWorkstation(wsId: number, userId: number | null): Promise<Workstation> {
+  await delay(200);
+  const ws = mockWorkstations.find(w => w.id === wsId);
+  if (!ws) throw new Error('Workstation not found');
+  ws.assigned_user_id = userId;
+  return { ...ws };
+}
+
+// ============ Queue ============
+let queueIdCounter = 100;
+
+export async function generateComponent(componentId: number): Promise<QueueItem> {
+  await delay(400);
+  const detail = mockComponentDetails[componentId];
+  if (!detail) throw new Error('Component not found');
+  if (!detail.flow_published) throw new Error('Flow is not published');
+
+  const firstStep = detail.flow_steps.find(s => s.step_order === 1);
+  if (!firstStep) throw new Error('No flow steps defined');
+  const firstOp = firstStep.operations.find(o => o.order === 1);
+  if (!firstOp) throw new Error('No operations defined');
+
+  const serial = generateSerial();
+  queueIdCounter++;
+  const item: QueueItem = {
+    id: queueIdCounter,
+    component_id: componentId,
+    component_serial: serial,
+    component_part_code: detail.component.part_code,
+    step_id: firstStep.id,
+    operation_id: firstOp.id,
+    operation_name: firstOp.name,
+    workstation_id: firstOp.workstation_id!,
+    gauge_id: firstOp.gauge_id,
+    status: 'waiting',
+    created_at: new Date().toISOString(),
+    started_at: null,
+    completed_at: null,
+  };
+  mockQueue.push(item);
+  return item;
+}
+
+export async function getQueueForWorkstation(wsId: number): Promise<QueueItem[]> {
+  await delay(100);
+  return mockQueue.filter(q => q.workstation_id === wsId && q.status === 'waiting');
+}
+
+export async function getMyWorkstation(userId: number): Promise<Workstation | null> {
+  await delay(100);
+  return mockWorkstations.find(w => w.assigned_user_id === userId) || null;
+}
+
+export async function getNextQueueItem(wsId: number): Promise<QueueItem | null> {
+  await delay(100);
+  const items = mockQueue.filter(q => q.workstation_id === wsId && q.status === 'waiting');
+  items.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  return items[0] || null;
+}
+
+export async function startQueueItem(itemId: number): Promise<QueueItem> {
+  await delay(150);
+  const item = mockQueue.find(q => q.id === itemId);
+  if (!item) throw new Error('Queue item not found');
+  item.status = 'in_progress';
+  item.started_at = new Date().toISOString();
+  return { ...item };
+}
+
+export async function recordQueueResult(
+  itemId: number,
+  measurements: { measurement_id: number; value: number }[],
+  failAction?: FailAction,
+): Promise<{ nextItem: QueueItem | null; isComplete: boolean }> {
+  await delay(300);
+  const item = mockQueue.find(q => q.id === itemId);
+  if (!item) throw new Error('Queue item not found');
+
+  const detail = mockComponentDetails[item.component_id];
+  if (!detail) throw new Error('Component not found');
+
+  const allPassed = measurements.every(m => {
+    const meas = detail.measurements.find(dm => dm.id === m.measurement_id);
+    if (!meas) return true;
+    return m.value >= meas.min_limit && m.value <= meas.max_limit;
+  });
+
+  if (!allPassed) {
+    if (failAction === 'rework') {
+      item.status = 'rework';
+      item.completed_at = new Date().toISOString();
+      return { nextItem: null, isComplete: false };
+    }
+    if (failAction === 'scrap') {
+      item.status = 'failed';
+      item.completed_at = new Date().toISOString();
+      return { nextItem: null, isComplete: true };
+    }
+    if (failAction === 'skip') {
+      // fall through to advance
+    } else {
+      item.status = 'failed';
+      item.completed_at = new Date().toISOString();
+      return { nextItem: null, isComplete: false };
+    }
+  }
+
+  item.status = 'completed';
+  item.completed_at = new Date().toISOString();
+
+  // Advance to next operation
+  const currentStep = detail.flow_steps.find(s => s.id === item.step_id);
+  if (!currentStep) return { nextItem: null, isComplete: true };
+
+  // Check if there's a next operation in the same step
+  const currentOpIdx = currentStep.operations.findIndex(o => o.id === item.operation_id);
+  const nextOpInStep = currentStep.operations[currentOpIdx + 1];
+
+  if (nextOpInStep) {
+    queueIdCounter++;
+    const nextItem: QueueItem = {
+      id: queueIdCounter,
+      component_id: item.component_id,
+      component_serial: item.component_serial,
+      component_part_code: item.component_part_code,
+      step_id: currentStep.id,
+      operation_id: nextOpInStep.id,
+      operation_name: nextOpInStep.name,
+      workstation_id: nextOpInStep.workstation_id!,
+      gauge_id: nextOpInStep.gauge_id,
+      status: 'waiting',
+      created_at: new Date().toISOString(),
+      started_at: null,
+      completed_at: null,
+    };
+    mockQueue.push(nextItem);
+    return { nextItem, isComplete: false };
+  }
+
+  // Check if there's a next step
+  const currentStepIdx = detail.flow_steps.findIndex(s => s.id === item.step_id);
+  const nextStep = detail.flow_steps[currentStepIdx + 1];
+
+  if (nextStep && nextStep.operations.length > 0) {
+    const firstOp = nextStep.operations[0];
+    queueIdCounter++;
+    const nextItem: QueueItem = {
+      id: queueIdCounter,
+      component_id: item.component_id,
+      component_serial: item.component_serial,
+      component_part_code: item.component_part_code,
+      step_id: nextStep.id,
+      operation_id: firstOp.id,
+      operation_name: firstOp.name,
+      workstation_id: firstOp.workstation_id!,
+      gauge_id: firstOp.gauge_id,
+      status: 'waiting',
+      created_at: new Date().toISOString(),
+      started_at: null,
+      completed_at: null,
+    };
+    mockQueue.push(nextItem);
+    return { nextItem, isComplete: false };
+  }
+
+  return { nextItem: null, isComplete: true };
+}
+
+export async function getQueueItemById(itemId: number): Promise<QueueItem | null> {
+  await delay(50);
+  return mockQueue.find(q => q.id === itemId) || null;
+}
+
+export async function getTodayCompletedForWorkstation(wsId: number): Promise<number> {
+  await delay(100);
+  const today = new Date().toISOString().slice(0, 10);
+  return mockQueue.filter(
+    q => q.workstation_id === wsId && q.status === 'completed' && q.completed_at?.startsWith(today)
+  ).length;
+}
+
+export async function getWaitingCountForWorkstation(wsId: number): Promise<number> {
+  await delay(50);
+  return mockQueue.filter(q => q.workstation_id === wsId && q.status === 'waiting').length;
+}
+
+// ============ Flow Publishing ============
+export async function publishFlow(componentId: number): Promise<void> {
+  await delay(200);
+  const detail = mockComponentDetails[componentId];
+  if (!detail) throw new Error('Component not found');
+  detail.flow_published = true;
+}
+
+export async function unpublishFlow(componentId: number): Promise<void> {
+  await delay(200);
+  const detail = mockComponentDetails[componentId];
+  if (!detail) throw new Error('Component not found');
+  detail.flow_published = false;
+}
+
+export function isFlowPublished(componentId: number): boolean {
+  return mockComponentDetails[componentId]?.flow_published || false;
 }

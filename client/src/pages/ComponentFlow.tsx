@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { getMachines, saveComponentFlow } from '../data/service';
-import type { ComponentDetail, ManufacturingStep, ManufacturingOperation, Machine } from '../../../shared/types';
+import { getMachines, getWorkstations, getGauges, saveComponentFlow, publishFlow, unpublishFlow } from '../data/service';
+import type { ComponentDetail, ManufacturingStep, ManufacturingOperation, Machine, Workstation, Gauge } from '../../../shared/types';
 import { motion } from 'framer-motion';
 
 const machineColor: Record<string, string> = {
@@ -23,6 +23,8 @@ export default function ComponentFlow({
   onUpdate: (d: ComponentDetail) => void;
 }) {
   const [machines, setMachines] = useState<Machine[]>([]);
+  const [workstations, setWorkstations] = useState<Workstation[]>([]);
+  const [gauges, setGauges] = useState<Gauge[]>([]);
   const [steps, setSteps] = useState<ManufacturingStep[]>(() =>
     detail.flow_steps.map(s => ({
       ...s,
@@ -33,9 +35,14 @@ export default function ComponentFlow({
   const [saving, setSaving] = useState(false);
   const [viewMode, setViewMode] = useState<'diagram' | 'edit'>('diagram');
   const [scrollToStepId, setScrollToStepId] = useState<number | null>(null);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
-    getMachines().then(setMachines);
+    Promise.all([getMachines(), getWorkstations(), getGauges()]).then(([m, ws, g]) => {
+      setMachines(m);
+      setWorkstations(ws);
+      setGauges(g);
+    });
   }, []);
 
   useEffect(() => {
@@ -48,6 +55,17 @@ export default function ComponentFlow({
   function handleCardClick(stepId: number) {
     setViewMode('edit');
     setScrollToStepId(stepId);
+  }
+
+  async function handlePublishToggle() {
+    setPublishing(true);
+    if (detail.flow_published) {
+      await unpublishFlow(detail.component.id);
+    } else {
+      await publishFlow(detail.component.id);
+    }
+    onUpdate({ ...detail, flow_published: !detail.flow_published });
+    setPublishing(false);
   }
 
   function addStep() {
@@ -83,6 +101,8 @@ export default function ComponentFlow({
         name: '',
         order: s.operations.length + 1,
         measurement_ids: [],
+        workstation_id: null,
+        gauge_id: null,
       };
       return { ...s, operations: [...s.operations, newOp] };
     }));
@@ -102,6 +122,30 @@ export default function ComponentFlow({
     setSteps(steps.map(s => {
       if (s.id !== stepId) return s;
       return { ...s, operations: s.operations.map(o => o.id === opId ? { ...o, name } : o) };
+    }));
+    setDirty(true);
+  }
+
+  function updateOpWorkstation(stepId: number, opId: number, wsId: number | null) {
+    setSteps(steps.map(s => {
+      if (s.id !== stepId) return s;
+      return {
+        ...s,
+        operations: s.operations.map(o =>
+          o.id === opId ? { ...o, workstation_id: wsId, gauge_id: wsId ? o.gauge_id : null } : o
+        ),
+      };
+    }));
+    setDirty(true);
+  }
+
+  function updateOpGauge(stepId: number, opId: number, gaugeId: number | null) {
+    setSteps(steps.map(s => {
+      if (s.id !== stepId) return s;
+      return {
+        ...s,
+        operations: s.operations.map(o => o.id === opId ? { ...o, gauge_id: gaugeId } : o),
+      };
     }));
     setDirty(true);
   }
@@ -145,6 +189,8 @@ export default function ComponentFlow({
     setSaving(false);
   }
 
+  const isPublished = detail.flow_published;
+
   return (
     <div className="space-y-6">
       {steps.length === 0 ? (
@@ -157,28 +203,52 @@ export default function ComponentFlow({
         </div>
       ) : (
         <>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('diagram')}
+                className={`font-body text-small font-medium px-4 py-1.5 rounded-full transition-all ${
+                  viewMode === 'diagram'
+                    ? 'bg-text-primary text-white'
+                    : 'bg-neutral-100 text-text-secondary hover:bg-neutral-200'
+                }`}
+              >
+                Flow Diagram
+              </button>
+              <button
+                onClick={() => setViewMode('edit')}
+                className={`font-body text-small font-medium px-4 py-1.5 rounded-full transition-all ${
+                  viewMode === 'edit'
+                    ? 'bg-text-primary text-white'
+                    : 'bg-neutral-100 text-text-secondary hover:bg-neutral-200'
+                }`}
+              >
+                Edit Flow
+              </button>
+            </div>
             <button
-              onClick={() => setViewMode('diagram')}
+              onClick={handlePublishToggle}
+              disabled={publishing}
               className={`font-body text-small font-medium px-4 py-1.5 rounded-full transition-all ${
-                viewMode === 'diagram'
-                  ? 'bg-text-primary text-white'
+                isPublished
+                  ? 'bg-status-pass/10 text-status-pass border border-status-pass/30'
                   : 'bg-neutral-100 text-text-secondary hover:bg-neutral-200'
               }`}
             >
-              Flow Diagram
-            </button>
-            <button
-              onClick={() => setViewMode('edit')}
-              className={`font-body text-small font-medium px-4 py-1.5 rounded-full transition-all ${
-                viewMode === 'edit'
-                  ? 'bg-text-primary text-white'
-                  : 'bg-neutral-100 text-text-secondary hover:bg-neutral-200'
-              }`}
-            >
-              Edit Flow
+              {publishing ? '...' : isPublished ? 'Published' : 'Draft'}
             </button>
           </div>
+
+          {isPublished && viewMode === 'edit' && (
+            <div className="bg-status-info/10 border border-status-info/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+              <svg className="w-4 h-4 text-status-info shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <p className="font-body text-tiny text-text-secondary">
+                Flow is published. Changes to operations, workstation assignments, and measurements will take effect after saving. Unpublish to add or remove steps.
+              </p>
+            </div>
+          )}
 
           {viewMode === 'diagram' ? (
             <div className="space-y-0">
@@ -273,39 +343,68 @@ export default function ComponentFlow({
                           className="font-body text-body font-medium text-text-primary bg-transparent border-none focus:outline-none cursor-pointer"
                           value={step.machine_id}
                           onChange={e => updateStepMachine(step.id, Number(e.target.value))}
+                          disabled={isPublished}
                         >
                           {machines.map(m => (
                             <option key={m.id} value={m.id}>{m.name} ({m.machine_code})</option>
                           ))}
                         </select>
                         <div className="flex-1" />
-                        <button onClick={() => moveStep(step.id, 'up')} disabled={si === 0} className="text-text-secondary hover:text-text-primary disabled:opacity-30 p-1">
+                        <button onClick={() => moveStep(step.id, 'up')} disabled={si === 0 || isPublished} className="text-text-secondary hover:text-text-primary disabled:opacity-30 p-1">
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polyline points="18,15 12,9 6,15" /></svg>
                         </button>
-                        <button onClick={() => moveStep(step.id, 'down')} disabled={si === steps.length - 1} className="text-text-secondary hover:text-text-primary disabled:opacity-30 p-1">
+                        <button onClick={() => moveStep(step.id, 'down')} disabled={si === steps.length - 1 || isPublished} className="text-text-secondary hover:text-text-primary disabled:opacity-30 p-1">
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><polyline points="6,9 12,15 18,9" /></svg>
                         </button>
-                        <button onClick={() => removeStep(step.id)} className="text-text-secondary hover:text-status-fail p-1" title="Remove step">
+                        <button onClick={() => removeStep(step.id)} disabled={isPublished} className="text-text-secondary hover:text-status-fail disabled:opacity-30 p-1" title="Remove step">
                           <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </button>
                       </div>
 
                       <div className="p-5 space-y-3">
-                        {step.operations.map((op) => (
-                          <div key={op.id} className="flex items-center gap-3 bg-neutral-50 rounded-xl px-4 py-2.5">
-                            <input
-                              className="font-body text-body font-medium text-text-primary bg-transparent border-none focus:outline-none flex-1 placeholder:text-text-secondary/40"
-                              value={op.name}
-                              onChange={e => updateOpName(step.id, op.id, e.target.value)}
-                              placeholder="Operation name"
-                            />
-                            <button onClick={() => removeOperation(step.id, op.id)} className="text-text-secondary hover:text-status-fail shrink-0">
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-                            </button>
-                          </div>
-                        ))}
+                        {step.operations.map((op) => {
+                          const selectedWs = workstations.find(w => w.id === op.workstation_id);
+                          const availableGauges = selectedWs ? gauges.filter(g => selectedWs.gauge_ids.includes(g.id)) : [];
+                          return (
+                            <div key={op.id} className="bg-neutral-50 rounded-xl px-4 py-3 space-y-2">
+                              <div className="flex items-center gap-2">
+                                <input
+                                  className="font-body text-body font-medium text-text-primary bg-transparent border-none focus:outline-none flex-1 placeholder:text-text-secondary/40"
+                                  value={op.name}
+                                  onChange={e => updateOpName(step.id, op.id, e.target.value)}
+                                  placeholder="Operation name"
+                                />
+                                <button onClick={() => removeOperation(step.id, op.id)} disabled={isPublished} className="text-text-secondary hover:text-status-fail disabled:opacity-30 shrink-0">
+                                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                </button>
+                              </div>
+                              <div className="flex gap-2">
+                                <select
+                                  className="font-body text-tiny bg-surface border border-border-light rounded-lg px-2 py-1 text-text-primary flex-1"
+                                  value={op.workstation_id || ''}
+                                  onChange={e => updateOpWorkstation(step.id, op.id, e.target.value ? Number(e.target.value) : null)}
+                                >
+                                  <option value="">No workstation</option>
+                                  {workstations.map(ws => (
+                                    <option key={ws.id} value={ws.id}>{ws.name}</option>
+                                  ))}
+                                </select>
+                                <select
+                                  className="font-body text-tiny bg-surface border border-border-light rounded-lg px-2 py-1 text-text-primary flex-1"
+                                  value={op.gauge_id || ''}
+                                  onChange={e => updateOpGauge(step.id, op.id, e.target.value ? Number(e.target.value) : null)}
+                                >
+                                  <option value="">No gauge</option>
+                                  {availableGauges.map(g => (
+                                    <option key={g.id} value={g.id}>{g.gauge_name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          );
+                        })}
 
-                        <button onClick={() => addOperation(step.id)} className="font-body text-small text-text-secondary hover:text-text-primary transition-colors">
+                        <button onClick={() => addOperation(step.id)} disabled={isPublished} className="font-body text-small text-text-secondary hover:text-text-primary transition-colors disabled:opacity-30">
                           + Add Operation
                         </button>
 
@@ -347,7 +446,7 @@ export default function ComponentFlow({
                 })}
               </div>
 
-              <button onClick={addStep} className="btn-secondary">
+              <button onClick={addStep} disabled={isPublished} className="btn-secondary disabled:opacity-30">
                 + Add Station
               </button>
             </>

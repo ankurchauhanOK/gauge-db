@@ -26,9 +26,11 @@ export default function InspectComponent() {
   const [nextItem, setNextItem] = useState<QueueItem | null>(null);
   const [processing, setProcessing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const resultsRef = useRef<{ name: string; value: number; result: 'PASS' | 'FAIL'; unit: string; nominal: number; min: number; max: number }[]>([]);
 
   useEffect(() => {
     if (!itemId) { navigate('/operator/dashboard'); return; }
+    resultsRef.current = [];
     getQueueItemById(itemId).then(item => {
       if (!item) { navigate('/operator/dashboard'); return; }
       setQueueItem(item);
@@ -61,16 +63,18 @@ export default function InspectComponent() {
     if (isNaN(measuredValue)) return;
 
     const passed = measuredValue >= currentParam.min_limit && measuredValue <= currentParam.max_limit;
-    setLastResult(passed ? 'PASS' : 'FAIL');
-    setAllResults(prev => [...prev, {
+    const entry = {
       name: currentParam.name,
       value: measuredValue,
-      result: passed ? 'PASS' : 'FAIL',
+      result: passed ? 'PASS' as const : 'FAIL' as const,
       unit: currentParam.unit,
       nominal: currentParam.nominal,
       min: currentParam.min_limit,
       max: currentParam.max_limit,
-    }]);
+    };
+    resultsRef.current = [...resultsRef.current, entry];
+    setLastResult(passed ? 'PASS' : 'FAIL');
+    setAllResults(resultsRef.current);
     setAutoAdvancing(true);
     setSubmitting(true);
     setValue('');
@@ -90,7 +94,7 @@ export default function InspectComponent() {
   }
 
   async function handleComplete() {
-    const hasFailed = allResults.some(r => r.result === 'FAIL') || (lastResult === 'FAIL');
+    const hasFailed = resultsRef.current.some(r => r.result === 'FAIL');
     if (hasFailed) { setFailDialog(true); return; }
     await saveAndAdvance();
   }
@@ -98,13 +102,14 @@ export default function InspectComponent() {
   async function saveAndAdvance(action?: FailAction) {
     setProcessing(true);
     try {
-      const recordedValues = allResults.map(r => {
+      const recordedValues = resultsRef.current.map(r => {
         const m = operationMeasurements.find(m => m.name === r.name);
         return { measurement_id: m?.id || 0, value: r.value };
       });
       const result = await recordQueueResult(queueItem!.id, recordedValues, action);
       setNextItem(result.nextItem);
-      setFinalStatus(action === 'scrap' ? 'rejected' : 'accepted');
+      const failed = action === 'rework' || action === 'scrap';
+      setFinalStatus(failed ? 'rejected' : 'accepted');
       setStep('result');
     } finally { setProcessing(false); }
   }

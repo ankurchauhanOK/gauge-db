@@ -1,9 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getMyWorkstation, getQueueForWorkstation, generateComponent, getNextQueueItem, getTodayCompletedForWorkstation, getWaitingCountForWorkstation, getMachines, getGauges } from '../data/service';
+import { getMyWorkstation, getQueueForWorkstation, generateComponent, getNextQueueItem, getTodayCompletedForWorkstation, getWaitingCountForWorkstation, hasActiveQueueItem, getMachines, getGauges } from '../data/service';
 import type { Workstation, Machine, Gauge, QueueItem } from '../../../shared/types';
 import { motion } from 'framer-motion';
+
+const statusBadge: Record<string, { label: string; style: string }> = {
+  waiting: { label: 'Waiting', style: 'text-status-info bg-status-info/10' },
+  in_progress: { label: 'In Progress', style: 'text-status-warning bg-status-warning/10' },
+  rework: { label: 'Rework', style: 'text-status-fail bg-status-fail/10' },
+};
 
 export default function WorkstationDashboard() {
   const { user } = useAuth();
@@ -13,6 +19,7 @@ export default function WorkstationDashboard() {
   const [nextItem, setNextItem] = useState<QueueItem | null>(null);
   const [completed, setCompleted] = useState(0);
   const [waiting, setWaiting] = useState(0);
+  const [activeItem, setActiveItem] = useState(false);
   const [machine, setMachine] = useState<Machine | null>(null);
   const [gauges, setGauges] = useState<Gauge[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,13 +30,14 @@ export default function WorkstationDashboard() {
     const ws = await getMyWorkstation(user.id);
     setWorkstation(ws);
     if (ws) {
-      const [mchs, ggs, q, next, comp, wait] = await Promise.all([
+      const [mchs, ggs, q, next, comp, wait, active] = await Promise.all([
         getMachines(),
         getGauges(),
         getQueueForWorkstation(ws.id),
         getNextQueueItem(ws.id),
         getTodayCompletedForWorkstation(ws.id),
         getWaitingCountForWorkstation(ws.id),
+        hasActiveQueueItem(ws.id),
       ]);
       setMachine(mchs.find(m => m.id === ws.machine_id) || null);
       setGauges(ggs);
@@ -37,6 +45,7 @@ export default function WorkstationDashboard() {
       setNextItem(next);
       setCompleted(comp);
       setWaiting(wait);
+      setActiveItem(active);
     }
     setLoading(false);
   }, [user]);
@@ -119,47 +128,75 @@ export default function WorkstationDashboard() {
       <div className="flex items-center gap-3">
         <button
           onClick={handleGenerate}
-          disabled={generating}
-          className="btn-primary"
+          disabled={generating || activeItem}
+          className={activeItem ? 'btn-primary opacity-40 cursor-not-allowed' : 'btn-primary'}
+          title={activeItem ? 'Complete the current component first' : 'Generate new component'}
         >
           {generating ? 'Generating...' : '+ Generate Component'}
         </button>
-        {nextItem && (
+        {nextItem && !activeItem && (
           <button onClick={handleStartInspection} className="btn-secondary bg-status-pass text-white hover:bg-status-pass/90 border-status-pass">
             Start Inspection →
           </button>
         )}
       </div>
 
+      {activeItem && (
+        <div className="bg-status-info/10 border border-status-info/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <svg className="w-4 h-4 text-status-info shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
+          </svg>
+          <p className="font-body text-tiny text-text-secondary">
+            Complete the current component before generating a new one.
+          </p>
+        </div>
+      )}
+
       {queue.length > 0 ? (
         <div>
-          <h2 className="font-heading font-semibold text-section text-text-primary mb-3">Queue</h2>
+          <h2 className="font-heading font-semibold text-section text-text-primary mb-3">Active Components</h2>
           <div className="space-y-2">
-            {queue.map((item, i) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.03 }}
-                className="bg-surface rounded-xl border border-border-light px-5 py-3 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="font-body text-tiny font-semibold text-text-secondary bg-neutral-200/60 px-2 py-0.5 rounded">
-                    {item.component_part_code}
-                  </span>
-                  <div>
-                    <p className="font-body text-body font-medium text-text-primary">{item.component_serial}</p>
-                    <p className="font-body text-tiny text-text-secondary">{item.operation_name}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleStartInspectionForItem(item.id)}
-                  className="font-body text-small font-medium text-primary hover:underline"
+            {queue.map((item, i) => {
+              const badge = statusBadge[item.status] || { label: item.status, style: 'text-text-secondary bg-neutral-100' };
+              return (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.03 }}
+                  className="bg-surface rounded-xl border border-border-light px-5 py-3 flex items-center justify-between"
                 >
-                  Inspect
-                </button>
-              </motion.div>
-            ))}
+                  <div className="flex items-center gap-4">
+                    <span className="font-body text-tiny font-semibold text-text-secondary bg-neutral-200/60 px-2 py-0.5 rounded">
+                      {item.component_part_code}
+                    </span>
+                    <div>
+                      <p className="font-body text-body font-medium text-text-primary">{item.component_serial}</p>
+                      <p className="font-body text-tiny text-text-secondary">{item.operation_name}</p>
+                    </div>
+                    <span className={`font-body text-tiny font-medium px-2 py-0.5 rounded-full ${badge.style}`}>
+                      {badge.label}
+                    </span>
+                  </div>
+                  {item.status === 'waiting' && (
+                    <button
+                      onClick={() => handleStartInspectionForItem(item.id)}
+                      className="font-body text-small font-medium text-primary hover:underline"
+                    >
+                      Inspect
+                    </button>
+                  )}
+                  {item.status === 'in_progress' && (
+                    <button
+                      onClick={() => handleStartInspectionForItem(item.id)}
+                      className="font-body text-small font-medium text-status-warning hover:underline"
+                    >
+                      Continue
+                    </button>
+                  )}
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       ) : (

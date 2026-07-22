@@ -977,7 +977,12 @@ export async function generateComponent(componentId: number): Promise<QueueItem>
 
 export async function getQueueForWorkstation(wsId: number): Promise<QueueItem[]> {
   await delay(100);
-  return mockQueue.filter(q => q.workstation_id === wsId && q.status === 'waiting');
+  return mockQueue.filter(q => q.workstation_id === wsId && (q.status === 'waiting' || q.status === 'in_progress' || q.status === 'rework'));
+}
+
+export async function hasActiveQueueItem(wsId: number): Promise<boolean> {
+  await delay(50);
+  return mockQueue.some(q => q.workstation_id === wsId && (q.status === 'waiting' || q.status === 'in_progress' || q.status === 'rework'));
 }
 
 export async function getMyWorkstation(userId: number): Promise<Workstation | null> {

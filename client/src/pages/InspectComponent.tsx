@@ -117,7 +117,11 @@ export default function InspectComponent() {
   }
 
   function handleContinue() {
-    navigate(nextItem ? `/operator/inspect?itemId=${nextItem.id}` : '/operator/dashboard');
+    if (nextItem) {
+      navigate(`/operator/inspect?itemId=${nextItem.id}`);
+    } else {
+      navigate(`/operator/dashboard?result=${finalStatus}&serial=${queueItem?.component_serial}`);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {

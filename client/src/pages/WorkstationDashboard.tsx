@@ -1,50 +1,34 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getMyWorkstation, getQueueForWorkstation, generateComponent, getNextQueueItem, getTodayCompletedForWorkstation, getWaitingCountForWorkstation, hasActiveQueueItem, getMachines, getGauges } from '../data/service';
-import type { Workstation, Machine, Gauge, QueueItem } from '../../../shared/types';
+import { getMyWorkstation, generateComponent, getTodayCompletedForWorkstation, hasActiveQueueItem, getNextQueueItem, getMachines } from '../data/service';
+import type { Workstation, Machine } from '../../../shared/types';
 import { motion } from 'framer-motion';
-
-const statusBadge: Record<string, { label: string; style: string }> = {
-  waiting: { label: 'Waiting', style: 'text-status-info bg-status-info/10' },
-  in_progress: { label: 'In Progress', style: 'text-status-warning bg-status-warning/10' },
-  rework: { label: 'Rework', style: 'text-status-fail bg-status-fail/10' },
-};
 
 export default function WorkstationDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [workstation, setWorkstation] = useState<Workstation | null>(null);
-  const [queue, setQueue] = useState<QueueItem[]>([]);
-  const [nextItem, setNextItem] = useState<QueueItem | null>(null);
   const [completed, setCompleted] = useState(0);
-  const [waiting, setWaiting] = useState(0);
   const [activeItem, setActiveItem] = useState(false);
   const [machine, setMachine] = useState<Machine | null>(null);
-  const [gauges, setGauges] = useState<Gauge[]>([]);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [generatedSerial, setGeneratedSerial] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
     const ws = await getMyWorkstation(user.id);
     setWorkstation(ws);
     if (ws) {
-      const [mchs, ggs, q, next, comp, wait, active] = await Promise.all([
+      const [mchs, comp, active] = await Promise.all([
         getMachines(),
-        getGauges(),
-        getQueueForWorkstation(ws.id),
-        getNextQueueItem(ws.id),
         getTodayCompletedForWorkstation(ws.id),
-        getWaitingCountForWorkstation(ws.id),
         hasActiveQueueItem(ws.id),
       ]);
       setMachine(mchs.find(m => m.id === ws.machine_id) || null);
-      setGauges(ggs);
-      setQueue(q);
-      setNextItem(next);
       setCompleted(comp);
-      setWaiting(wait);
       setActiveItem(active);
     }
     setLoading(false);
@@ -58,25 +42,29 @@ export default function WorkstationDashboard() {
     return () => clearInterval(interval);
   }, [loadData, workstation]);
 
+  // If redirected back after inspection with a result
+  const result = searchParams.get('result');
+  const resultSerial = searchParams.get('serial');
+
   async function handleGenerate() {
-    if (!workstation) return;
+    if (!workstation || generating) return;
     setGenerating(true);
     try {
-      await generateComponent(workstation.component_type_id);
-      await loadData();
+      const item = await generateComponent(workstation.component_type_id);
+      setGeneratedSerial(item.component_serial);
+      // Navigate to inspect immediately after short delay
+      setTimeout(() => navigate(`/operator/inspect?itemId=${item.id}`), 600);
     } finally {
       setGenerating(false);
     }
   }
 
-  function handleStartInspection() {
-    if (nextItem) {
-      navigate(`/operator/inspect?itemId=${nextItem.id}`);
+  async function handleContinueInspection() {
+    if (!workstation) return;
+    const next = await getNextQueueItem(workstation.id);
+    if (next) {
+      navigate(`/operator/inspect?itemId=${next.id}`);
     }
-  }
-
-  function handleStartInspectionForItem(itemId: number) {
-    navigate(`/operator/inspect?itemId=${itemId}`);
   }
 
   if (loading) {
@@ -101,110 +89,70 @@ export default function WorkstationDashboard() {
   }
 
   return (
-    <div className="max-w-[1440px] mx-auto px-10 space-y-6">
-      <div className="bg-surface rounded-2xl border border-border-light p-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="font-body text-small text-text-secondary mb-1">
-              Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.name?.split(' ')[0] || 'Operator'}
-            </p>
-            <h1 className="font-heading font-semibold text-title text-text-primary">{workstation.name}</h1>
-            <p className="font-body text-body text-text-secondary mt-1">{machine?.name || 'Unknown Machine'} · {machine?.machine_code || ''}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="font-heading font-bold text-title text-status-pass">{completed}</p>
-              <p className="font-body text-tiny text-text-secondary">Today</p>
-            </div>
-            <div className="w-px h-10 bg-border-light" />
-            <div className="text-right">
-              <p className="font-heading font-bold text-title text-status-info">{waiting}</p>
-              <p className="font-body text-tiny text-text-secondary">Waiting</p>
-            </div>
-          </div>
-        </div>
+    <div className="max-w-[600px] mx-auto px-10 pt-12">
+      <div className="text-center mb-10">
+        <p className="font-body text-small text-text-secondary mb-1">
+          Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, {user?.name?.split(' ')[0] || 'Operator'}
+        </p>
+        <h1 className="font-heading font-semibold text-title text-text-primary">{workstation.name}</h1>
+        <p className="font-body text-body text-text-secondary mt-1">{machine?.name || ''}</p>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleGenerate}
-          disabled={generating || activeItem}
-          className={activeItem ? 'btn-primary opacity-40 cursor-not-allowed' : 'btn-primary'}
-          title={activeItem ? 'Complete the current component first' : 'Generate new component'}
+      {result && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`rounded-2xl px-5 py-4 mb-6 text-center ${
+            result === 'accepted' ? 'bg-status-pass/10 border border-status-pass/20' : 'bg-status-fail/10 border border-status-fail/20'
+          }`}
         >
-          {generating ? 'Generating...' : '+ Generate Component'}
-        </button>
-        {nextItem && !activeItem && (
-          <button onClick={handleStartInspection} className="btn-secondary bg-status-pass text-white hover:bg-status-pass/90 border-status-pass">
-            Start Inspection →
+          <p className={`font-heading font-bold text-section ${result === 'accepted' ? 'text-status-pass' : 'text-status-fail'}`}>
+            {result === 'accepted' ? '✓ Component OK' : '✗ Component Rejected'}
+          </p>
+          {resultSerial && (
+            <p className="font-body text-tiny text-text-secondary mt-1 font-mono">{resultSerial}</p>
+          )}
+        </motion.div>
+      )}
+
+      <div className="bg-surface rounded-3xl border border-border-light p-10 text-center space-y-6">
+        <div className="space-y-2">
+          <p className="font-heading font-bold text-display text-status-pass">{completed}</p>
+          <p className="font-body text-small text-text-secondary">Components completed today</p>
+        </div>
+
+        {generatedSerial && generating && (
+          <p className="font-body text-body text-text-secondary">
+            Created {generatedSerial} — opening inspection...
+          </p>
+        )}
+
+        {activeItem ? (
+          <div className="space-y-3">
+            <div className="bg-status-info/10 rounded-xl px-4 py-3">
+              <p className="font-body text-small text-text-secondary">You have a component in progress</p>
+            </div>
+            <button onClick={handleContinueInspection} className="btn-primary w-full py-4 text-body">
+              Continue Inspection →
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="btn-primary text-lg py-5 px-8 w-full"
+          >
+            {generating ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Generating...
+              </span>
+            ) : (
+              '+ Generate Component'
+            )}
           </button>
         )}
       </div>
-
-      {activeItem && (
-        <div className="bg-status-info/10 border border-status-info/20 rounded-xl px-4 py-2.5 flex items-center gap-2">
-          <svg className="w-4 h-4 text-status-info shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-          <p className="font-body text-tiny text-text-secondary">
-            Complete the current component before generating a new one.
-          </p>
-        </div>
-      )}
-
-      {queue.length > 0 ? (
-        <div>
-          <h2 className="font-heading font-semibold text-section text-text-primary mb-3">Active Components</h2>
-          <div className="space-y-2">
-            {queue.map((item, i) => {
-              const badge = statusBadge[item.status] || { label: item.status, style: 'text-text-secondary bg-neutral-100' };
-              return (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.03 }}
-                  className="bg-surface rounded-xl border border-border-light px-5 py-3 flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-4">
-                    <span className="font-body text-tiny font-semibold text-text-secondary bg-neutral-200/60 px-2 py-0.5 rounded">
-                      {item.component_part_code}
-                    </span>
-                    <div>
-                      <p className="font-body text-body font-medium text-text-primary">{item.component_serial}</p>
-                      <p className="font-body text-tiny text-text-secondary">{item.operation_name}</p>
-                    </div>
-                    <span className={`font-body text-tiny font-medium px-2 py-0.5 rounded-full ${badge.style}`}>
-                      {badge.label}
-                    </span>
-                  </div>
-                  {item.status === 'waiting' && (
-                    <button
-                      onClick={() => handleStartInspectionForItem(item.id)}
-                      className="font-body text-small font-medium text-primary hover:underline"
-                    >
-                      Inspect
-                    </button>
-                  )}
-                  {item.status === 'in_progress' && (
-                    <button
-                      onClick={() => handleStartInspectionForItem(item.id)}
-                      className="font-body text-small font-medium text-status-warning hover:underline"
-                    >
-                      Continue
-                    </button>
-                  )}
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="bg-surface rounded-2xl border border-border-light p-12 text-center">
-          <p className="font-heading font-semibold text-section text-text-primary mb-2">All Caught Up</p>
-          <p className="font-body text-body text-text-secondary">No components waiting for inspection at this workstation.</p>
-        </div>
-      )}
     </div>
   );
 }

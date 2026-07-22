@@ -17,7 +17,6 @@ export default function WorkstationDashboard() {
   const [generating, setGenerating] = useState(false);
   const [generatedSerial, setGeneratedSerial] = useState<string | null>(null);
 
-  // Result from inspection
   const result = searchParams.get('result');
   const resultSerial = searchParams.get('serial');
 
@@ -88,111 +87,76 @@ export default function WorkstationDashboard() {
     );
   }
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good Morning' : hour < 18 ? 'Good Afternoon' : 'Good Evening';
+
   return (
-    <div className="h-full flex flex-col">
-      {/* Top Status Bar */}
-      <div className="bg-surface border-b border-border-light px-10 py-5">
-        <div className="max-w-3xl mx-auto flex items-center justify-between">
-          <div>
-            <p className="font-body text-small text-text-secondary">
-              Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, <span className="font-semibold text-text-primary">{user?.name?.split(' ')[0]}</span>
-            </p>
-            <h1 className="font-heading font-semibold text-section text-text-primary mt-0.5">{workstation.name}</h1>
-            <p className="font-body text-small text-text-secondary">{machine?.name || ''}</p>
-          </div>
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="font-heading font-bold text-[2rem] text-status-pass leading-none">{completed}</p>
-              <p className="font-body text-tiny text-text-secondary mt-1">Today</p>
-            </div>
-            <div className="w-px h-10 bg-border-light" />
-            <div className="text-center">
-              <p className="font-heading font-bold text-[2rem] text-text-primary leading-none">{activeItem ? '1' : '0'}</p>
-              <p className="font-body text-tiny text-text-secondary mt-1">Active</p>
-            </div>
+    <div className="h-full flex items-center justify-center px-10">
+      <div className="w-full max-w-sm space-y-8">
+        {/* Compact Header */}
+        <div className="text-center">
+          <p className="font-body text-small text-text-secondary">{greeting}, {user?.name?.split(' ')[0]}</p>
+          <h1 className="font-heading font-semibold text-section text-text-primary mt-0.5">{workstation.name}</h1>
+          <div className="flex items-center justify-center gap-3 mt-2">
+            <span className="font-body text-tiny text-text-secondary">{machine?.name || ''}</span>
+            <span className="w-px h-3 bg-border-light" />
+            <span className="font-body text-tiny font-medium text-status-pass">{completed} today</span>
           </div>
         </div>
-      </div>
 
-      {/* Main Area */}
-      <div className="flex-1 flex flex-col items-center justify-center px-10">
-        <div className="w-full max-w-md space-y-6">
-          {/* Result Banner */}
-          <AnimatePresence>
-            {result && (
-              <motion.div
-                initial={{ opacity: 0, y: -12, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -12, scale: 0.95 }}
-                className={`rounded-2xl px-6 py-5 text-center border ${
-                  result === 'accepted'
-                    ? 'bg-status-pass/10 border-status-pass/20'
-                    : 'bg-status-fail/10 border-status-fail/20'
-                }`}
-              >
-                <p className={`font-heading font-bold text-section ${result === 'accepted' ? 'text-status-pass' : 'text-status-fail'}`}>
-                  {result === 'accepted' ? '✓ Component Accepted' : '✗ Component Rejected'}
-                </p>
-                {resultSerial && (
-                  <p className="font-body text-small text-text-secondary mt-1 font-mono">{resultSerial}</p>
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Generate / Continue */}
-          {activeItem ? (
+        {/* Result Banner */}
+        <AnimatePresence>
+          {result && (
             <motion.div
-              initial={{ opacity: 0, y: 12 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
+              exit={{ opacity: 0, y: -8 }}
+              className={`rounded-2xl px-5 py-4 text-center border ${
+                result === 'accepted'
+                  ? 'bg-status-pass/10 border-status-pass/20'
+                  : 'bg-status-fail/10 border-status-fail/20'
+              }`}
             >
-              <div className="bg-status-info/10 rounded-2xl px-6 py-4 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-status-info/20 flex items-center justify-center shrink-0">
-                  <svg className="w-4 h-4 text-status-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
-                  </svg>
-                </div>
-                <p className="font-body text-small text-text-secondary">You have an inspection in progress</p>
-              </div>
-              <button
-                onClick={handleContinueInspection}
-                className="w-full py-5 rounded-2xl font-heading font-bold text-body transition-all bg-status-info text-white hover:bg-status-info/90 shadow-lg shadow-status-info/20"
-              >
-                Continue Inspection →
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
-              <button
-                onClick={handleGenerate}
-                disabled={generating}
-                className="w-full py-8 rounded-3xl font-heading font-bold text-[1.5rem] transition-all bg-text-primary text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed shadow-xl shadow-black/10"
-              >
-                {generating ? (
-                  <span className="flex items-center justify-center gap-3">
-                    <span className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Generating...
-                  </span>
-                ) : (
-                  <div className="space-y-2">
-                    <span>+ Generate Component</span>
-                    <p className="font-body text-small font-normal text-white/60">Press to start a new production item</p>
-                  </div>
-                )}
-              </button>
-
-              {generatedSerial && generating && (
-                <p className="text-center font-body text-small text-text-secondary mt-4">
-                  Created {generatedSerial}...
-                </p>
-              )}
+              <p className={`font-heading font-bold text-body ${result === 'accepted' ? 'text-status-pass' : 'text-status-fail'}`}>
+                {result === 'accepted' ? '✓ Accepted' : '✗ Rejected'}
+              </p>
+              {resultSerial && <p className="font-body text-tiny text-text-secondary mt-0.5 font-mono">{resultSerial}</p>}
             </motion.div>
           )}
-        </div>
+        </AnimatePresence>
+
+        {/* Button */}
+        {activeItem ? (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <button
+              onClick={handleContinueInspection}
+              className="w-full py-4 rounded-2xl font-heading font-semibold text-body bg-status-info text-white hover:bg-status-info/90 transition-all shadow-lg shadow-status-info/20"
+            >
+              Continue Inspection →
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="w-full py-5 rounded-2xl font-heading font-semibold text-body bg-text-primary text-white hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              {generating ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Generating...
+                </span>
+              ) : (
+                '+ Generate Component'
+              )}
+            </button>
+          </motion.div>
+        )}
+
+        {generatedSerial && generating && (
+          <p className="text-center font-body text-tiny text-text-secondary">{generatedSerial}</p>
+        )}
       </div>
     </div>
   );
